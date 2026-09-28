@@ -17,6 +17,7 @@ import { AuthModal } from './components/AuthModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { InstallPwaModal } from './components/InstallPwaModal';
+import { LandingPage } from './components/LandingPage';
 import {
   FileText,
   ListFilter,
@@ -123,8 +124,8 @@ export function App() {
   // Devis actif en cours d'édition
   const [currentQuote, setCurrentQuote] = useState<Quote>(() => quotes[0]);
 
-  // Onglet courant : 'editor' | 'list' | 'settings'
-  const [activeView, setActiveView] = useState<'editor' | 'list' | 'settings'>('editor');
+  // Onglet courant : 'landing' | 'editor' | 'list' | 'settings'
+  const [activeView, setActiveView] = useState<'landing' | 'editor' | 'list' | 'settings'>('editor');
 
   // Modales
   const [isSignatureOpen, setIsSignatureOpen] = useState(false);
@@ -236,8 +237,12 @@ export function App() {
       <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
         <div className="max-w-4xl mx-auto px-3 h-14 flex items-center justify-between gap-2">
           {/* Logo Brand */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md glow-amber">
+          <div
+            onClick={() => setActiveView(activeView === 'landing' ? 'editor' : 'landing')}
+            className="flex items-center gap-2 shrink-0 cursor-pointer group"
+            title="Accueil / Présentation de l'application"
+          >
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md glow-amber group-hover:scale-105 transition">
               <Zap className="w-4 h-4 fill-current" />
             </div>
             <span className="font-black text-white text-sm tracking-tight">
@@ -247,6 +252,19 @@ export function App() {
 
           {/* Navigation Links Compacts */}
           <nav className="flex items-center gap-1 shrink-0">
+            <button
+              onClick={() => setActiveView('landing')}
+              className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
+                activeView === 'landing'
+                  ? 'bg-amber-500 text-slate-950 shadow glow-amber'
+                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+              }`}
+              title="Présentation & Simulateur"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Offre</span>
+            </button>
+
             <button
               onClick={() => setActiveView('editor')}
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
@@ -302,6 +320,10 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        {activeView === 'landing' && (
+          <LandingPage onStartFreeTrial={() => setActiveView('editor')} />
+        )}
+
         {activeView === 'editor' && (
           <QuickQuoteEditor
             quote={currentQuote}
