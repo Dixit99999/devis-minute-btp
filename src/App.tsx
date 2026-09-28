@@ -15,12 +15,15 @@ import { PaymentModal } from './components/PaymentModal';
 import { OnboardingModal } from './components/OnboardingModal';
 import { AuthModal } from './components/AuthModal';
 import { SubscriptionModal } from './components/SubscriptionModal';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { InstallPwaModal } from './components/InstallPwaModal';
 import {
   FileText,
   ListFilter,
   Building2,
   Zap,
   Sparkles,
+  Smartphone,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -130,6 +133,7 @@ export function App() {
   const [showOnboarding, setShowOnboarding] = useState<boolean>(!artisan.isOnboarded);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState<boolean>(false);
+  const [showInstallModal, setShowInstallModal] = useState<boolean>(false);
 
   // Sauvegarde locale Offline-First
   useEffect(() => {
@@ -279,9 +283,22 @@ export function App() {
               <Building2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Profil</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setShowInstallModal(true)}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border border-slate-700 hover:border-amber-500/40 rounded-lg text-xs font-bold flex items-center gap-1 transition"
+              title="Installer l'application sur smartphone"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Installer l'App</span>
+            </button>
           </nav>
         </div>
       </header>
+
+      {/* Indicateur de Statut Réseau / Mode Hors-ligne */}
+      <OfflineIndicator />
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6">
@@ -416,6 +433,12 @@ export function App() {
           onClose={() => setIsPaymentOpen(false)}
         />
       )}
+
+      {/* Modale d'Installation PWA sur Smartphone */}
+      <InstallPwaModal
+        isOpen={showInstallModal}
+        onClose={() => setShowInstallModal(false)}
+      />
     </div>
   );
 }

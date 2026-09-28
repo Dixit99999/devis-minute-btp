@@ -1,0 +1,29 @@
+{
+  "name": "Devis Minute BTP",
+  "short_name": "DevisMinute",
+  "description": "Application ultra-rapide de devis, signature et facturation pour artisans du BTP sur chantier",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#f59e0b",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nouveau Devis",
+      "short_name": "Nouveau",
+      "description": "Créer un devis en 30 secondes",
+      "url": "/?action=new",
+      "icons": [{ "src": "/favicon.svg", "sizes": "192x192" }]
+    }
+  ]
+}
