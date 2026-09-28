@@ -14,9 +14,11 @@ import {
   MapPin,
   Receipt,
   Camera,
+  Share2,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { ShareModal } from './ShareModal';
 
 interface QuotePDFModalProps {
   quote: Quote;
@@ -35,6 +37,7 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
 }) => {
   const printRef = useRef<HTMLDivElement | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   const docTitle =
     quote.docType === 'facture_acompte'
@@ -130,6 +133,14 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
 
           {/* Boutons d'Action Rapide */}
           <div className="grid grid-cols-2 sm:flex sm:items-center gap-2 flex-wrap">
+            <button
+              onClick={() => setIsShareOpen(true)}
+              className="py-2 px-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition shadow glow-amber"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              Envoyer / Partager
+            </button>
+
             <button
               onClick={handleShareWhatsApp}
               className="py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition shadow"
@@ -588,6 +599,14 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
 
         </div>
       </div>
+
+      {/* Modale d'Envoi 1-Clic WhatsApp / SMS / Email */}
+      <ShareModal
+        quote={quote}
+        artisan={artisan}
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+      />
     </div>
   );
 };

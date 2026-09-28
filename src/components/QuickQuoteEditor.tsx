@@ -14,6 +14,7 @@ import { parseVoiceInputAdvanced } from '../utils/voiceParser';
 import { MicrophonePermissionModal } from './MicrophonePermissionModal';
 import { PhotoUploadSection } from './PhotoUploadSection';
 import { CatalogItemModal } from './CatalogItemModal';
+import { ShareModal } from './ShareModal';
 import {
   Mic,
   MicOff,
@@ -43,6 +44,7 @@ import {
   Car,
   Pencil,
   RotateCcw,
+  Share2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -82,6 +84,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
 
   const [editingCatalogItem, setEditingCatalogItem] = useState<PresetCatalogItem | null>(null);
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
 
   const saveCatalog = (newCatalog: PresetCatalogItem[]) => {
     setCatalog(newCatalog);
@@ -943,6 +946,16 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
+              onClick={() => setIsShareOpen(true)}
+              className="px-3 py-2 rounded-xl border border-emerald-500/30 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 font-bold text-xs flex items-center gap-1.5 transition"
+              title="Envoyer le devis par WhatsApp, SMS ou Email"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Envoyer</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onOpenPreview}
               className="px-3 py-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition"
             >
@@ -981,6 +994,15 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
         }}
         onSave={handleSaveCatalogItem}
         onDelete={handleDeleteCatalogItem}
+      />
+
+      {/* Modale d'Envoi 1-Clic WhatsApp / SMS / Email */}
+      <ShareModal
+        quote={quote}
+        artisan={artisan}
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        onOpenPreview={onOpenPreview}
       />
     </div>
   );
