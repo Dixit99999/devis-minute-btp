@@ -25,14 +25,23 @@ import {
   Zap,
   Sparkles,
   Smartphone,
+  Sun,
+  Moon,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const STORAGE_KEY_ARTISAN = 'devis_minute_artisan_profile';
 const STORAGE_KEY_QUOTES = 'devis_minute_quotes_list';
 const STORAGE_KEY_USER_EMAIL = 'devis_minute_user_email';
+const STORAGE_KEY_THEME = 'devis_minute_theme';
 
 export function App() {
+  // Thème Sombre / Clair (Haute Visibilité Chantier)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    const saved = localStorage.getItem(STORAGE_KEY_THEME);
+    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+  });
+
   // Profil Artisan persistant
   const [artisan, setArtisan] = useState<ArtisanProfile>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_ARTISAN);
@@ -138,6 +147,17 @@ export function App() {
 
   // Sauvegarde locale Offline-First
   useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_THEME, theme);
+    if (theme === 'light') {
+      document.documentElement.classList.add('theme-light');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.remove('theme-light');
+      document.documentElement.classList.add('dark');
+    }
+  }, [theme]);
+
+  useEffect(() => {
     localStorage.setItem(STORAGE_KEY_ARTISAN, JSON.stringify(artisan));
   }, [artisan]);
 
@@ -233,9 +253,13 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
+      theme === 'light' ? 'bg-slate-100 text-slate-900 theme-light' : 'bg-slate-950 text-slate-100'
+    }`}>
       {/* Navigation Top Bar Mobile-Optimized */}
-      <header className="sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800">
+      <header className={`sticky top-0 z-30 backdrop-blur-md border-b transition-colors duration-200 ${
+        theme === 'light' ? 'bg-white/95 border-slate-200 shadow-sm' : 'bg-slate-900/95 border-slate-800'
+      }`}>
         <div className="max-w-4xl mx-auto px-3 h-14 flex items-center justify-between gap-2">
           {/* Logo Brand */}
           <div
@@ -246,8 +270,8 @@ export function App() {
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-amber-500 to-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md glow-amber group-hover:scale-105 transition">
               <Zap className="w-4 h-4 fill-current" />
             </div>
-            <span className="font-black text-white text-sm tracking-tight">
-              DEVIS<span className="text-amber-400">MIN</span>UTE
+            <span className={`font-black text-sm tracking-tight ${theme === 'light' ? 'text-slate-900' : 'text-white'}`}>
+              DEVIS<span className="text-amber-500">MIN</span>UTE
             </span>
           </div>
 
@@ -258,11 +282,11 @@ export function App() {
               className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
                 activeView === 'landing'
                   ? 'bg-amber-500 text-slate-950 shadow glow-amber'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
               title="Présentation & Simulateur"
             >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
               <span className="hidden sm:inline">Offre</span>
             </button>
 
@@ -271,7 +295,7 @@ export function App() {
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
                 activeView === 'editor'
                   ? 'bg-amber-500 text-slate-950 shadow glow-amber'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
               <FileText className="w-3.5 h-3.5" />
@@ -283,7 +307,7 @@ export function App() {
               className={`px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
                 activeView === 'list'
                   ? 'bg-amber-500 text-slate-950 shadow glow-amber'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
             >
               <ListFilter className="w-3.5 h-3.5" />
@@ -295,12 +319,26 @@ export function App() {
               className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition ${
                 activeView === 'settings'
                   ? 'bg-amber-500 text-slate-950 shadow glow-amber'
-                  : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
               }`}
               title="Mon Entreprise"
             >
               <Building2 className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Profil</span>
+            </button>
+
+            {/* Bouton Toggle Thème Chantier Plein Soleil / Nuit */}
+            <button
+              type="button"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              className={`p-2 rounded-lg border text-xs font-bold transition flex items-center justify-center ${
+                theme === 'light'
+                  ? 'bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-200 shadow-sm'
+                  : 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-slate-700'
+              }`}
+              title={theme === 'dark' ? 'Passer en Mode Plein Soleil (Clair)' : 'Passer en Mode Sombre'}
+            >
+              {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
             </button>
 
             <button
