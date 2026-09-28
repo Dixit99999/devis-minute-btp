@@ -46,6 +46,8 @@ import {
   RotateCcw,
   Share2,
   CreditCard,
+  Receipt,
+  CheckCircle2,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -56,6 +58,7 @@ interface QuickQuoteEditorProps {
   onOpenSignature: () => void;
   onOpenPreview: () => void;
   onOpenPayment?: () => void;
+  onConvertToInvoice?: (type: 'acompte' | 'solde') => void;
 }
 
 export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
@@ -65,6 +68,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
   onOpenSignature,
   onOpenPreview,
   onOpenPayment,
+  onConvertToInvoice,
 }) => {
   const [activeTab, setActiveTab] = useState<'editor' | 'catalog'>('editor');
   const [selectedTrade, setSelectedTrade] = useState<string>('all');
@@ -417,6 +421,53 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
           {isListening ? "Écoute..." : "Dictée vocale (IA)"}
         </button>
       </div>
+
+      {/* Bannière Facturation de Solde Rapide */}
+      {quote.docType === 'facture_solde' ? (
+        <div className="px-4 py-3 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl flex items-center justify-between gap-3 text-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+              <Receipt className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold text-emerald-300 block">Facture de Solde Définitive</span>
+              <span className="text-[11px] text-slate-300">
+                N° <strong className="font-mono text-white">{quote.invoiceNumber}</strong> • Déduction d'acompte incluse
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenPreview}
+            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow flex items-center gap-1 transition"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            Voir Facture
+          </button>
+        </div>
+      ) : (quote.status === 'signe' || quote.status === 'acompte_paye') && onConvertToInvoice ? (
+        <div className="px-4 py-3 bg-gradient-to-r from-blue-900/40 to-slate-800 border border-blue-500/30 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs animate-in fade-in">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-emerald-500/20 text-emerald-400 rounded-xl">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold text-white block">Chantier validé par le client</span>
+              <span className="text-[11px] text-slate-300">
+                Travaux terminés ? Générez la facture de solde avec déduction de l'acompte.
+              </span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onConvertToInvoice('solde')}
+            className="px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl font-black text-xs shadow-lg shadow-emerald-600/20 flex items-center gap-1.5 transition hover:scale-105"
+          >
+            <Receipt className="w-4 h-4" />
+            <span>Facturer le Solde (1 Clic)</span>
+          </button>
+        </div>
+      ) : null}
 
       {voiceHint && (
         <div className="px-3.5 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center gap-2 animate-in fade-in">

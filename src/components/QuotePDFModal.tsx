@@ -351,10 +351,18 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
                   <span className="text-lg font-mono font-black text-amber-400">{formatEuro(quote.totalTTC)}</span>
                 </div>
                 {quote.docType === 'facture_solde' ? (
-                  <div className="pt-1.5 border-t border-slate-800 text-[11px] text-emerald-300 flex justify-between">
-                    <span>Acompte déjà réglé ({quote.depositPercent}%) :</span>
-                    <span className="font-mono font-bold">-{formatEuro(quote.depositAmountTTC)}</span>
-                  </div>
+                  <>
+                    <div className="pt-1.5 border-t border-slate-800 text-[11px] text-emerald-300 flex justify-between">
+                      <span>Acompte déjà réglé ({quote.depositPercent}%) :</span>
+                      <span className="font-mono font-bold">-{formatEuro(quote.depositAmountTTC)}</span>
+                    </div>
+                    <div className="pt-2 border-t border-emerald-500/40 flex justify-between items-baseline bg-emerald-950/40 p-2 rounded-lg mt-1">
+                      <span className="text-xs font-black uppercase text-emerald-400">Net restant à payer :</span>
+                      <span className="text-lg font-mono font-black text-emerald-300">
+                        {formatEuro(Math.max(0, quote.totalTTC - (quote.depositAmountTTC || 0)))}
+                      </span>
+                    </div>
+                  </>
                 ) : (
                   <div className="pt-1.5 border-t border-slate-800 text-[11px] text-amber-200 flex justify-between">
                     <span>Acompte à la commande ({quote.depositPercent}%) :</span>
@@ -363,6 +371,22 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Modalités de paiement & IBAN pour facture de solde */}
+            {quote.docType === 'facture_solde' && artisan.ribIban && (
+              <div className="p-3 bg-blue-50 rounded-xl border border-blue-200 text-[11px] text-slate-700 space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-blue-900">
+                  <CreditCard className="w-3.5 h-3.5 text-blue-600" />
+                  Règlement du solde par virement bancaire :
+                </div>
+                <div className="font-mono text-xs font-semibold text-slate-900">
+                  IBAN : {artisan.ribIban} {artisan.ribBic ? `• BIC : ${artisan.ribBic}` : ''}
+                </div>
+                <p className="text-[10px] text-slate-500">
+                  Paiement exigible à réception de facture. Mentionner la réf. {quote.invoiceNumber || quote.number} dans le libellé du virement.
+                </p>
+              </div>
+            )}
 
             {/* Mentions Légales Assurance Décennale */}
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[10px] text-slate-500 space-y-1">
@@ -553,16 +577,40 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
                     <span>Total TVA :</span>
                     <span className="font-mono font-bold">{formatEuro(quote.totalTVA)}</span>
                   </div>
-                  <div className="pt-2 border-t border-slate-700 flex justify-between items-baseline">
-                    <span className="text-sm font-black uppercase text-amber-400">Total TTC :</span>
-                    <span className="text-lg font-mono font-black text-amber-400">{formatEuro(quote.totalTTC)}</span>
-                  </div>
-                  <div className="mt-2 pt-2 border-t border-slate-800 text-[11px] text-amber-200 flex justify-between">
-                    <span>Acompte à la commande ({quote.depositPercent}%) :</span>
-                    <span className="font-mono font-bold">{formatEuro(quote.depositAmountTTC)}</span>
-                  </div>
+                  {quote.docType === 'facture_solde' ? (
+                    <>
+                      <div className="mt-2 pt-2 border-t border-slate-800 text-[11px] text-emerald-300 flex justify-between">
+                        <span>Acompte déjà perçu ({quote.depositPercent}%) :</span>
+                        <span className="font-mono font-bold">-{formatEuro(quote.depositAmountTTC)}</span>
+                      </div>
+                      <div className="mt-1.5 pt-1.5 border-t border-emerald-500/40 flex justify-between items-baseline text-emerald-400 font-black">
+                        <span className="text-xs uppercase">Net à payer :</span>
+                        <span className="text-base font-mono">
+                          {formatEuro(Math.max(0, quote.totalTTC - (quote.depositAmountTTC || 0)))}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="mt-2 pt-2 border-t border-slate-800 text-[11px] text-amber-200 flex justify-between">
+                      <span>Acompte à la commande ({quote.depositPercent}%) :</span>
+                      <span className="font-mono font-bold">{formatEuro(quote.depositAmountTTC)}</span>
+                    </div>
+                  )}
                 </div>
               </div>
+
+              {/* Modalités & Mentions Légales Facturation A4 */}
+              {quote.docType === 'facture_solde' ? (
+                <div className="p-3 bg-slate-50 rounded border border-slate-200 text-[9px] text-slate-600 mb-4 space-y-1">
+                  <div className="flex justify-between font-bold text-slate-800">
+                    <span>Conditions de règlement : Paiement à réception de facture</span>
+                    <span>{artisan.ribIban ? `IBAN : ${artisan.ribIban} • BIC : ${artisan.ribBic}` : ''}</span>
+                  </div>
+                  <p className="text-[8px] text-slate-500 leading-tight">
+                    En cas de retard de paiement, pénalités au taux annuel de 3 fois le taux d'intérêt légal. Indemnité forfaitaire de 40 € pour frais de recouvrement en cas de retard (Code de commerce art. D.441-5). Pas d'escompte pour règlement anticipé.
+                  </p>
+                </div>
+              ) : null}
 
               {/* Décennale A4 */}
               <div className="p-3 bg-slate-50 rounded border border-slate-200 text-[9px] text-slate-500 mb-6">

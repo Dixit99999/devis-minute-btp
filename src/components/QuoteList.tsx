@@ -26,6 +26,7 @@ interface QuoteListProps {
   onCreateNewQuote: () => void;
   onOpenPDF: (quote: Quote) => void;
   onOpenPayment: (quote: Quote) => void;
+  onConvertToInvoice?: (quote: Quote, type: 'acompte' | 'solde') => void;
 }
 
 export const QuoteList: React.FC<QuoteListProps> = ({
@@ -35,6 +36,7 @@ export const QuoteList: React.FC<QuoteListProps> = ({
   onCreateNewQuote,
   onOpenPDF,
   onOpenPayment,
+  onConvertToInvoice,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'brouillon' | 'signe' | 'acompte_paye' | 'facture'>('all');
@@ -448,6 +450,22 @@ export const QuoteList: React.FC<QuoteListProps> = ({
                       >
                         <CreditCard className="w-3.5 h-3.5" />
                         <span className="hidden sm:inline">Acompte</span>
+                      </button>
+                    )}
+
+                    {/* Facturation Solde 1-Clic */}
+                    {onConvertToInvoice && (quote.status === 'signe' || quote.status === 'acompte_paye') && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onConvertToInvoice(quote, 'solde');
+                        }}
+                        className="px-2.5 py-2 bg-emerald-600/30 hover:bg-emerald-600/40 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold flex items-center gap-1 transition"
+                        title="Transformer en Facture de Solde définitive avec déduction d'acompte"
+                      >
+                        <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Facturer solde</span>
                       </button>
                     )}
                   </div>

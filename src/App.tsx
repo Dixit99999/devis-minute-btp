@@ -208,10 +208,11 @@ export function App() {
     }
   };
 
-  const handleConvertToInvoice = (type: 'acompte' | 'solde') => {
+  const handleConvertToInvoice = (type: 'acompte' | 'solde', targetQuote?: Quote) => {
+    const quoteToConvert = targetQuote || currentQuote;
     const invoiceNum = generateInvoiceNumber(quotes.length, type);
     const updated: Quote = {
-      ...currentQuote,
+      ...quoteToConvert,
       docType: type === 'acompte' ? 'facture_acompte' : 'facture_solde',
       invoiceNumber: invoiceNum,
       status: type === 'acompte' ? 'facture_acompte' : 'facture_solde',
@@ -332,6 +333,7 @@ export function App() {
             onOpenSignature={() => setIsSignatureOpen(true)}
             onOpenPreview={() => setIsPDFOpen(true)}
             onOpenPayment={() => setIsPaymentOpen(true)}
+            onConvertToInvoice={(type) => handleConvertToInvoice(type)}
           />
         )}
 
@@ -352,6 +354,7 @@ export function App() {
               setCurrentQuote(q);
               setIsPaymentOpen(true);
             }}
+            onConvertToInvoice={(q, type) => handleConvertToInvoice(type, q)}
           />
         )}
 
