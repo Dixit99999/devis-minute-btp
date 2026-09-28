@@ -15,7 +15,9 @@ import {
   AlertCircle,
   Eye,
   Receipt,
+  FileSpreadsheet,
 } from 'lucide-react';
+import { AccountingExportModal } from './AccountingExportModal';
 
 interface QuoteListProps {
   quotes: Quote[];
@@ -37,6 +39,7 @@ export const QuoteList: React.FC<QuoteListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'brouillon' | 'signe' | 'acompte_paye' | 'facture'>('all');
   const [reminderNotification, setReminderNotification] = useState<string | null>(null);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Statistiques de trésorerie consolidées
   const totalSignedAmount = quotes
@@ -204,13 +207,25 @@ export const QuoteList: React.FC<QuoteListProps> = ({
             />
           </div>
 
-          <button
-            onClick={onCreateNewQuote}
-            className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-lg glow-amber transition shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nouveau Devis Express</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsExportModalOpen(true)}
+              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-blue-500/50 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow transition shrink-0"
+              title="Exporter les écritures pour l'expert-comptable (CSV Excel & FEC)"
+            >
+              <FileSpreadsheet className="w-4 h-4 text-blue-400" />
+              <span>Export Comptable & FEC</span>
+            </button>
+
+            <button
+              onClick={onCreateNewQuote}
+              className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-lg glow-amber transition shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nouveau Devis Express</span>
+            </button>
+          </div>
         </div>
 
         {/* Onglets de filtrage rapide */}
@@ -442,6 +457,14 @@ export const QuoteList: React.FC<QuoteListProps> = ({
           })}
         </div>
       )}
+
+      {/* Modale d'Export Comptable & FEC */}
+      <AccountingExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        quotes={quotes}
+        artisan={artisan}
+      />
     </div>
   );
 };
