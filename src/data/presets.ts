@@ -1,0 +1,181 @@
+import type { PresetCatalogItem, ArtisanProfile } from '../types';
+
+export const INITIAL_ARTISAN_PROFILE: ArtisanProfile = {
+  companyName: "SARL BÂTI-EXPRESS",
+  artisanName: "Marc Fontaine",
+  trade: "Plombier Chauffagiste & Dépanneur",
+  siret: "849 203 118 00024",
+  rcsOrRma: "RCS Paris B 849 203 118",
+  tvaIntra: "FR 45 849203118",
+  address: "14 Rue des Métiers",
+  postalCode: "75011",
+  city: "Paris",
+  phone: "06 42 89 12 00",
+  email: "contact@bati-express.fr",
+  decennaleCompany: "SMABTP Assurances",
+  decennalePoliceNumber: "DEC-2024-984210-F",
+  decennaleCoverageArea: "France Métropolitaine",
+  ribIban: "FR76 3000 4000 0100 2345 6789 012",
+  ribBic: "BNPAFRPPXXX",
+  defaultHourlyRate: 60,
+  isOnboarded: true,
+};
+
+
+export const PRESET_CATALOG: PresetCatalogItem[] = [
+  // Plomberie
+  {
+    id: 'plomb-1',
+    trade: 'plomberie',
+    label: 'Remplacement chauffe-eau électrique 200L vertical',
+    category: 'fourniture',
+    defaultPriceHT: 680,
+    defaultUnit: 'u',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'plomb-2',
+    trade: 'plomberie',
+    label: 'Dépose ancien cumulus et pose nouveau chauffe-eau',
+    category: 'main_d_oeuvre',
+    defaultPriceHT: 280,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'plomb-3',
+    trade: 'plomberie',
+    label: 'Recherche et réparation de fuite apparente',
+    category: 'forfait',
+    defaultPriceHT: 150,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'plomb-4',
+    trade: 'plomberie',
+    label: 'Remplacement mécanisme WC complet & robinet flotteur silencieux',
+    category: 'forfait',
+    defaultPriceHT: 190,
+    defaultUnit: 'u',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'plomb-5',
+    trade: 'plomberie',
+    label: 'Débouchage mécanique haute pression canalisation',
+    category: 'forfait',
+    defaultPriceHT: 180,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+
+  // Électricité
+  {
+    id: 'elec-1',
+    trade: 'electricite',
+    label: 'Remplacement tableau électrique 3 rangées conforme NF C 15-100',
+    category: 'forfait',
+    defaultPriceHT: 950,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'elec-2',
+    trade: 'electricite',
+    label: 'Création point lumineux / prise 16A avec saignée & rebouchage',
+    category: 'forfait',
+    defaultPriceHT: 110,
+    defaultUnit: 'u',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'elec-3',
+    trade: 'electricite',
+    label: 'Diagnostic et recherche de panne électrique / court-circuit',
+    category: 'forfait',
+    defaultPriceHT: 140,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+
+  // Serrurerie
+  {
+    id: 'ser-1',
+    trade: 'serrurerie',
+    label: 'Ouverture de porte claquée sans dégradation',
+    category: 'forfait',
+    defaultPriceHT: 120,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'ser-2',
+    trade: 'serrurerie',
+    label: 'Remplacement cylindre de sécurité A2P 3 étoiles (fourniture + pose)',
+    category: 'forfait',
+    defaultPriceHT: 290,
+    defaultUnit: 'u',
+    defaultVatRate: 10,
+  },
+
+  // Peinture & Rénovation
+  {
+    id: 'peint-1',
+    trade: 'peinture',
+    label: 'Préparation des fonds + peinture velours 2 couches (murs/plafonds)',
+    category: 'main_d_oeuvre',
+    defaultPriceHT: 35,
+    defaultUnit: 'm²',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'peint-2',
+    trade: 'peinture',
+    label: 'Reprise après dégât des eaux (enduit, ponçage, impression, finition)',
+    category: 'forfait',
+    defaultPriceHT: 420,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+
+  // Climatisation
+  {
+    id: 'clim-1',
+    trade: 'climatisation',
+    label: 'Installation et mise en service climatiseur monosplit réversible 3.5 kW',
+    category: 'forfait',
+    defaultPriceHT: 1450,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+
+  // Général / Déplacement
+  {
+    id: 'gen-1',
+    trade: 'general',
+    label: 'Forfait déplacement & prise en charge chantier (zone urbaine)',
+    category: 'deplacement',
+    defaultPriceHT: 50,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'gen-2',
+    trade: 'general',
+    label: 'Main-d\'œuvre horaire ouvrier qualifié BTP',
+    category: 'main_d_oeuvre',
+    defaultPriceHT: 60,
+    defaultUnit: 'h',
+    defaultVatRate: 10,
+  },
+  {
+    id: 'gen-3',
+    trade: 'general',
+    label: 'Évacuation des gravats et traitement en déchetterie agréée',
+    category: 'forfait',
+    defaultPriceHT: 85,
+    defaultUnit: 'forfait',
+    defaultVatRate: 10,
+  },
+];
