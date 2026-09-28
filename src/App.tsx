@@ -309,6 +309,7 @@ export function App() {
             onUpdateQuote={handleUpdateCurrentQuote}
             onOpenSignature={() => setIsSignatureOpen(true)}
             onOpenPreview={() => setIsPDFOpen(true)}
+            onOpenPayment={() => setIsPaymentOpen(true)}
           />
         )}
 

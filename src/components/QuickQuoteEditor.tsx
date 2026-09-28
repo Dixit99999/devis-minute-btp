@@ -45,6 +45,7 @@ import {
   Pencil,
   RotateCcw,
   Share2,
+  CreditCard,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -54,6 +55,7 @@ interface QuickQuoteEditorProps {
   onUpdateQuote: (updatedQuote: Quote) => void;
   onOpenSignature: () => void;
   onOpenPreview: () => void;
+  onOpenPayment?: () => void;
 }
 
 export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
@@ -62,6 +64,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
   onUpdateQuote,
   onOpenSignature,
   onOpenPreview,
+  onOpenPayment,
 }) => {
   const [activeTab, setActiveTab] = useState<'editor' | 'catalog'>('editor');
   const [selectedTrade, setSelectedTrade] = useState<string>('all');
@@ -907,28 +910,46 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
         </div>
       </div>
 
-      {/* Réglage du taux d'acompte */}
-      <div className="glass-card p-3.5 rounded-xl flex items-center justify-between gap-3">
-        <div>
-          <span className="text-xs font-bold text-slate-200">Acompte à la signature</span>
-          <p className="text-[10px] text-slate-400">Versement de blocage du chantier</p>
+      {/* Réglage du taux d'acompte & Encaissement Direct */}
+      <div className="glass-card p-3.5 rounded-xl space-y-2.5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <span className="text-xs font-bold text-slate-200">Acompte à la signature</span>
+            <p className="text-[10px] text-slate-400">Versement de blocage du chantier</p>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {[20, 30, 40, 50].map((pct) => (
+              <button
+                key={pct}
+                type="button"
+                onClick={() => updateCalculation(quote.items, pct)}
+                className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition ${
+                  quote.depositPercent === pct
+                    ? 'bg-amber-500 text-slate-950 glow-amber'
+                    : 'bg-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                {pct} %
+              </button>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          {[20, 30, 40, 50].map((pct) => (
+
+        {onOpenPayment && quote.depositAmountTTC > 0 && (
+          <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2">
+            <div className="text-[11px] text-slate-300">
+              Acompte calculé : <strong className="text-amber-400 font-mono">{formatEuro(quote.depositAmountTTC)} TTC</strong>
+            </div>
             <button
-              key={pct}
               type="button"
-              onClick={() => updateCalculation(quote.items, pct)}
-              className={`px-2 py-1 rounded-lg text-xs font-mono font-bold transition ${
-                quote.depositPercent === pct
-                  ? 'bg-amber-500 text-slate-950 glow-amber'
-                  : 'bg-slate-800 text-slate-400 hover:text-white'
-              }`}
+              onClick={onOpenPayment}
+              className="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-black flex items-center gap-1.5 shadow glow-amber transition"
             >
-              {pct} %
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Encaisser Acompte (QR / CB)</span>
             </button>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Barre d'Action Flottante en Bas pour Smartphone */}
