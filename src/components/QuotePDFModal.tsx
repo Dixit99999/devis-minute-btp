@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import type { Quote, ArtisanProfile } from '../types';
-import { formatEuro } from '../utils/calculator';
+import { formatEuro, groupItemsByRoom } from '../utils/calculator';
 import {
   X,
   Download,
@@ -15,6 +15,7 @@ import {
   Receipt,
   Camera,
   Share2,
+  RotateCcw,
 } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -26,6 +27,7 @@ interface QuotePDFModalProps {
   onClose: () => void;
   onOpenPayment?: () => void;
   onConvertToInvoice?: (type: 'acompte' | 'solde') => void;
+  onCreateCreditNote?: (quote: Quote, reason: string) => void;
 }
 
 export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
@@ -34,13 +36,18 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
   onClose,
   onOpenPayment,
   onConvertToInvoice,
+  onCreateCreditNote,
 }) => {
   const printRef = useRef<HTMLDivElement | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isShareOpen, setIsShareOpen] = useState(false);
+  const [showCreditModal, setShowCreditModal] = useState(false);
+  const [creditReason, setCreditReason] = useState('Annulation / Rectification de facture suite à accord commercial');
 
   const docTitle =
-    quote.docType === 'facture_acompte'
+    quote.docType === 'avoir'
+      ? `AVOIR N° ${quote.creditNoteNumber || quote.number}`
+      : quote.docType === 'facture_acompte'
       ? `FACTURE D'ACOMPTE N° ${quote.invoiceNumber || quote.number}`
       : quote.docType === 'facture_solde'
       ? `FACTURE DE SOLDE N° ${quote.invoiceNumber || quote.number}`
@@ -187,6 +194,17 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
               </button>
             )}
 
+            {onCreateCreditNote && (quote.status === 'facture_solde' || quote.status === 'facture_acompte') && quote.docType !== 'avoir' && (
+              <button
+                onClick={() => setShowCreditModal(true)}
+                className="py-2 px-3 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition"
+                title="Créer un avoir rectificatif conforme pour annulation ou remise"
+              >
+                <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+                Émettre Avoir
+              </button>
+            )}
+
             <button
               onClick={handleDownloadPDF}
               disabled={isGenerating}
@@ -256,32 +274,66 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
             </div>
 
             {/* Liste des Prestations Chiffrées */}
-            <div className="space-y-2">
+            <div className="space-y-3">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                Détail des Prestations ({quote.items.length})
+                Détail des Prestations {quote.docType === 'avoir' ? "faisant l'objet de l'avoir" : `(${quote.items.length})`}
               </span>
 
-              <div className="space-y-2">
-                {quote.items.map((item, idx) => (
-                  <div
-                    key={item.id || idx}
-                    className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2"
-                  >
-                    <div className="flex-1">
-                      <p className="font-bold text-slate-900 text-xs">{item.designation}</p>
-                      <p className="text-[10px] text-slate-500 mt-0.5">
-                        Qté : <strong className="text-slate-700">{item.quantity} {item.unit}</strong> • PU : {formatEuro(item.unitPriceHT)} HT • TVA : <span className="text-amber-700 font-bold">{item.vatRate}%</span>
-                      </p>
+              {quote.items.some((i) => i.room) ? (
+                // Regroupement par Pièce / Zone
+                <div className="space-y-3">
+                  {groupItemsByRoom(quote.items).map((group) => (
+                    <div key={group.roomName} className="space-y-1.5">
+                      <div className="flex items-center justify-between px-2 py-1 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs font-bold text-amber-900">
+                        <span>Lot / Pièce : {group.roomName}</span>
+                        <span className="font-mono text-amber-800">{formatEuro(group.totalHT)} HT</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        {group.items.map((item, idx) => (
+                          <div
+                            key={item.id || idx}
+                            className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                          >
+                            <div className="flex-1">
+                              <p className="font-bold text-slate-900 text-xs">{item.designation}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5">
+                                Qté : <strong className="text-slate-700">{item.quantity} {item.unit}</strong> • PU : {formatEuro(item.unitPriceHT)} HT • TVA : <span className="text-amber-700 font-bold">{item.vatRate}%</span>
+                              </p>
+                            </div>
+                            <div className="text-right sm:border-l sm:border-slate-200 sm:pl-3">
+                              <span className="font-mono font-black text-slate-900 text-xs">
+                                {formatEuro((item.quantity || 0) * (item.unitPriceHT || 0))} HT
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {quote.items.map((item, idx) => (
+                    <div
+                      key={item.id || idx}
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                    >
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-900 text-xs">{item.designation}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">
+                          Qté : <strong className="text-slate-700">{item.quantity} {item.unit}</strong> • PU : {formatEuro(item.unitPriceHT)} HT • TVA : <span className="text-amber-700 font-bold">{item.vatRate}%</span>
+                        </p>
+                      </div>
 
-                    <div className="text-right sm:border-l sm:border-slate-200 sm:pl-3">
-                      <span className="font-mono font-black text-slate-900 text-xs">
-                        {formatEuro((item.quantity || 0) * (item.unitPriceHT || 0))} HT
-                      </span>
+                      <div className="text-right sm:border-l sm:border-slate-200 sm:pl-3">
+                        <span className="font-mono font-black text-slate-900 text-xs">
+                          {formatEuro((item.quantity || 0) * (item.unitPriceHT || 0))} HT
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Annexe Photos de Chantier (si présentes) */}
@@ -496,18 +548,45 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 text-[11px]">
-                    {quote.items.map((item, index) => (
-                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
-                        <td className="py-2.5 px-3 font-medium text-slate-900">{item.designation}</td>
-                        <td className="py-2.5 px-2 text-center">{item.quantity}</td>
-                        <td className="py-2.5 px-2 text-center text-slate-500">{item.unit}</td>
-                        <td className="py-2.5 px-2 text-right font-mono">{formatEuro(item.unitPriceHT)}</td>
-                        <td className="py-2.5 px-2 text-center font-bold text-amber-700">{item.vatRate}%</td>
-                        <td className="py-2.5 px-3 text-right font-mono font-bold">
-                          {formatEuro((item.quantity || 0) * (item.unitPriceHT || 0))}
-                        </td>
-                      </tr>
-                    ))}
+                    {quote.items.some((i) => i.room) ? (
+                      groupItemsByRoom(quote.items).map((group) => (
+                        <React.Fragment key={group.roomName}>
+                          <tr className="bg-amber-100/70 font-bold text-[10px] text-amber-900">
+                            <td colSpan={5} className="py-1.5 px-3 uppercase tracking-wider">
+                              Lot / Pièce : {group.roomName}
+                            </td>
+                            <td className="py-1.5 px-3 text-right font-mono font-bold">
+                              {formatEuro(group.totalHT)}
+                            </td>
+                          </tr>
+                          {group.items.map((item, idx) => (
+                            <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                              <td className="py-2 px-3 pl-5 font-medium text-slate-900">{item.designation}</td>
+                              <td className="py-2 px-2 text-center">{item.quantity}</td>
+                              <td className="py-2 px-2 text-center text-slate-500">{item.unit}</td>
+                              <td className="py-2 px-2 text-right font-mono">{formatEuro(item.unitPriceHT)}</td>
+                              <td className="py-2 px-2 text-center font-bold text-amber-700">{item.vatRate}%</td>
+                              <td className="py-2 px-3 text-right font-mono font-bold">
+                                {formatEuro((item.quantity || 0) * (item.unitPriceHT || 0))}
+                              </td>
+                            </tr>
+                          ))}
+                        </React.Fragment>
+                      ))
+                    ) : (
+                      quote.items.map((item, index) => (
+                        <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                          <td className="py-2.5 px-3 font-medium text-slate-900">{item.designation}</td>
+                          <td className="py-2.5 px-2 text-center">{item.quantity}</td>
+                          <td className="py-2.5 px-2 text-center text-slate-500">{item.unit}</td>
+                          <td className="py-2.5 px-2 text-right font-mono">{formatEuro(item.unitPriceHT)}</td>
+                          <td className="py-2.5 px-2 text-center font-bold text-amber-700">{item.vatRate}%</td>
+                          <td className="py-2.5 px-3 text-right font-mono font-bold">
+                            {formatEuro((item.quantity || 0) * (item.unitPriceHT || 0))}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -577,7 +656,14 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
                     <span>Total TVA :</span>
                     <span className="font-mono font-bold">{formatEuro(quote.totalTVA)}</span>
                   </div>
-                  {quote.docType === 'facture_solde' ? (
+                  {quote.docType === 'avoir' ? (
+                    <div className="mt-2 pt-2 border-t border-rose-500/40 flex justify-between items-baseline text-rose-400 font-black">
+                      <span className="text-xs uppercase">Net à déduire / rembourser :</span>
+                      <span className="text-base font-mono">
+                        -{formatEuro(quote.totalTTC)}
+                      </span>
+                    </div>
+                  ) : quote.docType === 'facture_solde' ? (
                     <>
                       <div className="mt-2 pt-2 border-t border-slate-800 text-[11px] text-emerald-300 flex justify-between">
                         <span>Acompte déjà perçu ({quote.depositPercent}%) :</span>
@@ -599,8 +685,18 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
                 </div>
               </div>
 
-              {/* Modalités & Mentions Légales Facturation A4 */}
-              {quote.docType === 'facture_solde' ? (
+              {/* Modalités & Mentions Légales Facturation / Avoir A4 */}
+              {quote.docType === 'avoir' ? (
+                <div className="p-3 bg-rose-50 rounded border border-rose-200 text-[9px] text-rose-900 mb-4 space-y-1">
+                  <div className="flex justify-between font-bold">
+                    <span>Facture rectifiée : {quote.originalInvoiceNumber || quote.invoiceNumber || 'Facture initiale'}</span>
+                    <span>Motif de l'avoir : {quote.creditNoteReason || 'Avoir commercial'}</span>
+                  </div>
+                  <p className="text-[8px] text-rose-700 leading-tight">
+                    Avoir émis conformément à l'article 289 du Code Général des Impôts (CGI). Montant de TVA venant en déduction de la TVA collectée.
+                  </p>
+                </div>
+              ) : quote.docType === 'facture_solde' ? (
                 <div className="p-3 bg-slate-50 rounded border border-slate-200 text-[9px] text-slate-600 mb-4 space-y-1">
                   <div className="flex justify-between font-bold text-slate-800">
                     <span>Conditions de règlement : Paiement à réception de facture</span>
@@ -655,6 +751,62 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
       />
+
+      {/* Modale de Confirmation & Motif d'Avoir */}
+      {showCreditModal && onCreateCreditNote && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl max-w-md w-full shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-rose-500/20 text-rose-400 rounded-xl">
+                <RotateCcw className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">Émettre une Facture d'Avoir</h3>
+                <p className="text-xs text-slate-400">Réf. Facture d'origine : {quote.invoiceNumber || quote.number}</p>
+              </div>
+            </div>
+
+            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs text-slate-300 space-y-1">
+              <p className="font-bold text-amber-400">Conformité Fiscale (CGI art. 289) :</p>
+              <p>L'avoir sera numéroté de façon séquentielle avec imputation de TVA et annulation comptable officielle.</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-300 mb-1.5">
+                Motif légal de l'avoir :
+              </label>
+              <textarea
+                value={creditReason}
+                onChange={(e) => setCreditReason(e.target.value)}
+                rows={3}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                placeholder="Ex: Erreur de facturation, chantier non réalisé, remise commerciale négociée..."
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCreditModal(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onCreateCreditNote(quote, creditReason);
+                  setShowCreditModal(false);
+                }}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-black shadow transition flex items-center gap-1.5"
+              >
+                <RotateCcw className="w-4 h-4" />
+                Confirmer l'Avoir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

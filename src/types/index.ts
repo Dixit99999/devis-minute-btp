@@ -10,6 +10,7 @@ export interface QuoteItem {
   costPriceHT?: number; // Prix de revient/achat pour calcul de marge discrète
   vatRate: VatRate;
   totalHT: number;
+  room?: string; // Pièce / Zone du chantier (ex: Cuisine, Salle de bain, Salon, etc.)
 }
 
 export interface ClientInfo {
@@ -55,17 +56,26 @@ export interface ArtisanProfile {
   defaultHourlyRate: number; // Taux horaire par défaut
   isOnboarded?: boolean;
   logoUrl?: string;
+  // Notifications & Webhooks
+  notificationPhone?: string;
+  notificationEmail?: string;
+  webhookUrl?: string;
+  sendSmsOnSign?: boolean;
+  sendEmailOnSign?: boolean;
 }
 
-export type QuoteStatus = 'brouillon' | 'envoye' | 'signe' | 'acompte_paye' | 'facture_acompte' | 'facture_solde';
+export type QuoteStatus = 'brouillon' | 'envoye' | 'signe' | 'acompte_paye' | 'facture_acompte' | 'facture_solde' | 'avoir_emis';
 
-export type DocumentType = 'devis' | 'facture_acompte' | 'facture_solde';
+export type DocumentType = 'devis' | 'facture_acompte' | 'facture_solde' | 'avoir';
 
 export interface Quote {
   id: string;
   number: string;
   docType?: DocumentType;
   invoiceNumber?: string;
+  creditNoteNumber?: string;
+  creditNoteReason?: string;
+  originalInvoiceNumber?: string;
   createdAt: string;
   validUntil: string;
   status: QuoteStatus;

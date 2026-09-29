@@ -9,7 +9,7 @@ import type {
   QuotePhoto,
 } from '../types';
 import { PRESET_CATALOG } from '../data/presets';
-import { calculateTotals, formatEuro } from '../utils/calculator';
+import { calculateTotals, formatEuro, groupItemsByRoom } from '../utils/calculator';
 import { parseVoiceInputAdvanced } from '../utils/voiceParser';
 import { MicrophonePermissionModal } from './MicrophonePermissionModal';
 import { PhotoUploadSection } from './PhotoUploadSection';
@@ -665,6 +665,22 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
       {/* Vue 1 : Liste des Lignes du Devis avec Stepper "+" et "-" Tactile */}
       {activeTab === 'editor' && (
         <div className="space-y-2.5">
+          {/* Synthèse par Pièce / Zone si présente */}
+          {quote.items.some((i) => i.room) && (
+            <div className="p-3 bg-slate-900/60 rounded-xl border border-slate-800 flex items-center gap-2 overflow-x-auto custom-scrollbar text-xs">
+              <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">Sous-totaux Zones :</span>
+              {groupItemsByRoom(quote.items).map((g) => (
+                <div
+                  key={g.roomName}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800/90 border border-slate-700/60 shrink-0 flex items-center gap-1.5"
+                >
+                  <span className="text-slate-300 font-medium">{g.roomName} :</span>
+                  <span className="font-mono font-bold text-amber-400">{formatEuro(g.totalTTC)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {quote.items.length === 0 ? (
             <div className="p-6 text-center glass-card rounded-2xl border-dashed border-2 border-slate-800">
               <p className="text-slate-400 text-xs mb-2.5">
@@ -700,6 +716,34 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                </div>
+
+                {/* Ligne 2 : Sélection de la Pièce / Zone */}
+                <div className="flex items-center gap-2 pt-1 border-t border-slate-800/60">
+                  <span className="text-[10px] text-slate-400 font-semibold shrink-0">Zone / Pièce :</span>
+                  <div className="flex-1 flex items-center gap-1 overflow-x-auto pb-0.5 custom-scrollbar">
+                    {['Général', 'Cuisine', 'Salle de bain', 'Salon', 'Chambre', 'WC', 'Extérieur'].map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => handleItemChange(item.id, 'room', r === 'Général' ? undefined : r)}
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium transition shrink-0 ${
+                          (item.room === r || (!item.room && r === 'Général'))
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold'
+                            : 'bg-slate-900 text-slate-400 border border-slate-800 hover:text-slate-200'
+                        }`}
+                      >
+                        {r}
+                      </button>
+                    ))}
+                    <input
+                      type="text"
+                      placeholder="Autre pièce..."
+                      value={item.room && !['Cuisine', 'Salle de bain', 'Salon', 'Chambre', 'WC', 'Extérieur'].includes(item.room) ? item.room : ''}
+                      onChange={(e) => handleItemChange(item.id, 'room', e.target.value || undefined)}
+                      className="bg-slate-900 border border-slate-800 rounded px-2 py-0.5 text-[10px] text-white w-24 outline-none focus:border-amber-400"
+                    />
+                  </div>
                 </div>
 
                 {/* Champs Chiffrage & Stepper Tactile Pouce Mobile-Friendly */}

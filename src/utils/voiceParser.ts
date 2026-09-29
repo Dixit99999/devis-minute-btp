@@ -158,9 +158,30 @@ export function parseVoiceInputAdvanced(rawText: string): VoiceIntent | null {
     vatRate = 20;
   }
 
-  // E. Nettoyage de la Désignation
+  // E. Détection de la Pièce / Zone de chantier
+  let detectedRoom: string | undefined = undefined;
+  if (/dans\s+(?:la\s+)?cuisine|zone\s+cuisine/i.test(normalized)) {
+    detectedRoom = 'Cuisine';
+  } else if (/dans\s+(?:la\s+)?salle\s+de\s+bains?|sdb/i.test(normalized)) {
+    detectedRoom = 'Salle de bain';
+  } else if (/dans\s+(?:le\s+)?salon|s[ée]jour/i.test(normalized)) {
+    detectedRoom = 'Salon / Séjour';
+  } else if (/dans\s+(?:la\s+)?chambre/i.test(normalized)) {
+    detectedRoom = 'Chambre';
+  } else if (/(?:dans\s+(?:les?\s+)?)?wc|toilettes/i.test(normalized)) {
+    detectedRoom = 'WC';
+  } else if (/ext[ée]rieur|jardin|terrasse|fa[çc]ade/i.test(normalized)) {
+    detectedRoom = 'Extérieur';
+  } else if (/toiture|combles|charpente/i.test(normalized)) {
+    detectedRoom = 'Toiture / Combles';
+  } else if (/garage|cave|sous-sol/i.test(normalized)) {
+    detectedRoom = 'Garage / Sous-sol';
+  }
+
+  // F. Nettoyage de la Désignation
   let cleanDesignation = text
     .replace(/(?:[àa]|pour|co[uû]t(?:e)?|\:)?\s*(\d+(?:[.,]\d+)?)\s*(?:€|euros?|euro|eur)\s*(?:ht|ttc)?/gi, '')
+    .replace(/dans\s+(?:la\s+)?(?:cuisine|salle\s+de\s+bains?|sdb|salon|chambre|terrasse|toiture|cave|garage)/gi, '')
     .trim();
 
   // Supprimer les bruits de début de phrase
@@ -181,6 +202,7 @@ export function parseVoiceInputAdvanced(rawText: string): VoiceIntent | null {
       unit: detectedUnit,
       unitPriceHT: price > 0 ? price : 100,
       vatRate,
+      room: detectedRoom,
       category: detectedUnit === 'h' ? 'main_d_oeuvre' : detectedUnit === 'u' ? 'fourniture' : 'forfait',
     },
   };

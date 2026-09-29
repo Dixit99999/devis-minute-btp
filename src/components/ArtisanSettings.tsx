@@ -215,6 +215,83 @@ export const ArtisanSettings: React.FC<ArtisanSettingsProps> = ({ profile, onSav
           </div>
         </div>
 
+        {/* Section Notifications & Alertes Signature Client */}
+        <div className="glass-card p-5 rounded-2xl space-y-4 border-blue-500/20">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-blue-300 flex items-center gap-2">
+              <Phone className="w-4 h-4 text-blue-400" />
+              Alertes & Notifications de Signature en Direct
+            </h3>
+            <span className="text-[10px] bg-blue-500/10 text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30 font-semibold">
+              Temps Réel
+            </span>
+          </div>
+          <p className="text-xs text-slate-400">
+            Soyez averti instantanément sur votre téléphone dès qu'un client valide et signe son devis à distance.
+          </p>
+
+          <div className="space-y-3">
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.sendSmsOnSign ?? true}
+                onChange={(e) => setFormData((prev) => ({ ...prev, sendSmsOnSign: e.target.checked }))}
+                className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-slate-700 focus:ring-blue-500"
+              />
+              <span className="text-xs text-slate-200 font-medium">
+                M'alerter par <strong>SMS instantané</strong> dès qu'un devis est validé et signé
+              </span>
+            </label>
+
+            <label className="flex items-center gap-2.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.sendEmailOnSign ?? true}
+                onChange={(e) => setFormData((prev) => ({ ...prev, sendEmailOnSign: e.target.checked }))}
+                className="w-4 h-4 rounded text-blue-600 bg-slate-900 border-slate-700 focus:ring-blue-500"
+              />
+              <span className="text-xs text-slate-200 font-medium">
+                M'envoyer une notification par <strong>Email</strong> avec la copie PDF signée
+              </span>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+            <div>
+              <label className="text-xs font-medium text-slate-400 block mb-1">Mobile pour alertes SMS</label>
+              <input
+                type="tel"
+                value={formData.notificationPhone || formData.phone}
+                onChange={(e) => handleChange('notificationPhone', e.target.value)}
+                placeholder="Ex: 06 12 34 56 78"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-blue-400 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-slate-400 block mb-1">Email pour alertes directes</label>
+              <input
+                type="email"
+                value={formData.notificationEmail || formData.email}
+                onChange={(e) => handleChange('notificationEmail', e.target.value)}
+                placeholder="Ex: contact@artisan.fr"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-blue-400 outline-none"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-slate-400 block mb-1">Webhook URL (Optionnel - Zapier / Make / n8n)</label>
+            <input
+              type="url"
+              value={formData.webhookUrl || ''}
+              onChange={(e) => handleChange('webhookUrl', e.target.value)}
+              placeholder="https://hooks.zapier.com/hooks/catch/..."
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-blue-400 outline-none"
+            />
+          </div>
+        </div>
+
         {/* Bouton de sauvegarde */}
         <div className="flex justify-end">
           <button

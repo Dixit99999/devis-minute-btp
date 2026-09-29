@@ -5,7 +5,7 @@ import type {
   QuoteItem,
 } from './types';
 import { INITIAL_ARTISAN_PROFILE } from './data/presets';
-import { calculateTotals, generateQuoteNumber, generateInvoiceNumber } from './utils/calculator';
+import { calculateTotals, generateQuoteNumber, generateInvoiceNumber, generateCreditNoteNumber } from './utils/calculator';
 import { QuickQuoteEditor } from './components/QuickQuoteEditor';
 import { QuoteList } from './components/QuoteList';
 import { ArtisanSettings } from './components/ArtisanSettings';
@@ -27,6 +27,7 @@ import {
   Smartphone,
   Sun,
   Moon,
+  BellRing,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -52,12 +53,18 @@ export function App() {
       ...INITIAL_ARTISAN_PROFILE,
       defaultHourlyRate: 60,
       isOnboarded: true,
+      sendSmsOnSign: true,
+      sendEmailOnSign: true,
+      notificationPhone: '06 12 34 56 78',
     };
   });
 
   const [userEmail, setUserEmail] = useState<string | null>(() => {
     return localStorage.getItem(STORAGE_KEY_USER_EMAIL) || null;
   });
+
+  // Notification Toast Instantanée (Simulation SMS / Email reçu)
+  const [activeAlert, setActiveAlert] = useState<{ title: string; message: string; type: 'sms' | 'email' | 'info' } | null>(null);
 
   // Liste de devis persistante
   const [quotes, setQuotes] = useState<Quote[]>(() => {
@@ -72,6 +79,7 @@ export function App() {
         id: 'item-1',
         designation: 'Remplacement chauffe-eau électrique 200L vertical blindé',
         category: 'fourniture',
+        room: 'Salle de bain',
         quantity: 1,
         unit: 'u',
         unitPriceHT: 680,
@@ -83,6 +91,7 @@ export function App() {
         id: 'item-2',
         designation: 'Dépose de l\'ancien ballon et raccordements hydrauliques cuivre',
         category: 'main_d_oeuvre',
+        room: 'Salle de bain',
         quantity: 1,
         unit: 'forfait',
         unitPriceHT: 280,
@@ -94,6 +103,7 @@ export function App() {
         id: 'item-3',
         designation: 'Forfait déplacement et évacuation des gravats / ferraille',
         category: 'deplacement',
+        room: 'Prestations Générales',
         quantity: 1,
         unit: 'forfait',
         unitPriceHT: 85,
@@ -207,6 +217,30 @@ export function App() {
     setActiveView('editor');
   };
 
+  // Création d'une Facture d'Avoir légale (CGI art. 289)
+  const handleCreateCreditNote = (originalQuote: Quote, reason: string) => {
+    const countAvoirs = quotes.filter((q) => q.docType === 'avoir').length;
+    const creditNum = generateCreditNoteNumber(countAvoirs);
+    const invoiceRef = originalQuote.invoiceNumber || originalQuote.number;
+
+    const creditNote: Quote = {
+      ...originalQuote,
+      id: 'avoir-' + Date.now(),
+      docType: 'avoir',
+      number: creditNum,
+      creditNoteNumber: creditNum,
+      originalInvoiceNumber: invoiceRef,
+      creditNoteReason: reason || 'Annulation / Rectification de facture suite à accord commercial',
+      createdAt: new Date().toLocaleDateString('fr-FR'),
+      validUntil: new Date().toLocaleDateString('fr-FR'),
+      status: 'avoir_emis',
+    };
+
+    setQuotes((prev) => [creditNote, ...prev]);
+    setCurrentQuote(creditNote);
+    setIsPDFOpen(true);
+  };
+
   const handleSignatureSaved = (signatureDataUrl: string) => {
     const updated: Quote = {
       ...currentQuote,
@@ -217,6 +251,30 @@ export function App() {
     handleUpdateCurrentQuote(updated);
     setIsSignatureOpen(false);
     setIsPDFOpen(true);
+
+    // Vibration haptique mobile si disponible
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate([100, 50, 100]);
+    }
+
+    // Notification SMS & Email automatique lors de la signature client
+    if (artisan.sendSmsOnSign || artisan.sendEmailOnSign) {
+      const recipient = artisan.notificationPhone || artisan.phone || '06 ** ** ** **';
+      setActiveAlert({
+        type: 'sms',
+        title: '🔔 Signature Client Reçue & Validée !',
+        message: `Alerte SMS transmise au ${recipient} : Devis ${currentQuote.number} signé par ${currentQuote.client.name || 'le client'} (${currentQuote.totalTTC.toFixed(2)} € TTC).`,
+      });
+
+      // Simulation webhook externe (Zapier / Make / API SMS)
+      if (artisan.webhookUrl) {
+        console.log(`[DevisMinute] Webhook transmis vers ${artisan.webhookUrl} pour le devis ${currentQuote.number}`);
+      }
+
+      setTimeout(() => {
+        setActiveAlert(null);
+      }, 7000);
+    }
   };
 
   const handlePaymentSuccess = (quoteId: string) => {
@@ -357,6 +415,28 @@ export function App() {
       {/* Indicateur de Statut Réseau / Mode Hors-ligne */}
       <OfflineIndicator />
 
+      {/* Toast Notification Alert (SMS / Email en direct) */}
+      {activeAlert && (
+        <div className="fixed bottom-4 right-4 z-50 max-w-md w-[calc(100%-2rem)] animate-bounce-short bg-slate-900 border-2 border-amber-500 text-white p-4 rounded-2xl shadow-2xl flex items-start gap-3 backdrop-blur-xl">
+          <div className="p-2 bg-amber-500 text-slate-950 rounded-xl shrink-0 mt-0.5 animate-pulse">
+            <BellRing className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center justify-between gap-2">
+              <h4 className="font-black text-sm text-amber-400">{activeAlert.title}</h4>
+              <button
+                type="button"
+                onClick={() => setActiveAlert(null)}
+                className="text-slate-400 hover:text-white text-xs font-bold px-1"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-xs text-slate-200 mt-1 leading-relaxed">{activeAlert.message}</p>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Area */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6">
         {activeView === 'landing' && (
@@ -384,6 +464,7 @@ export function App() {
               setActiveView('editor');
             }}
             onCreateNewQuote={handleCreateNewQuote}
+            onCreateCreditNote={handleCreateCreditNote}
             onOpenPDF={(q) => {
               setCurrentQuote(q);
               setIsPDFOpen(true);
@@ -485,6 +566,7 @@ export function App() {
             setIsPaymentOpen(true);
           }}
           onConvertToInvoice={handleConvertToInvoice}
+          onCreateCreditNote={handleCreateCreditNote}
         />
       )}
 

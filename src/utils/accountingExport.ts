@@ -45,11 +45,14 @@ export function calculateVatAndRevenueSummary(quotes: Quote[]) {
   };
 
   quotes.forEach(quote => {
-    summary.totalHT += quote.totalHT || 0;
-    summary.totalTVA += quote.totalTVA || 0;
-    summary.totalTTC += quote.totalTTC || 0;
+    const isCreditNote = quote.docType === 'avoir';
+    const multiplier = isCreditNote ? -1 : 1;
 
-    if (['acompte_paye', 'facture_acompte', 'facture_solde'].includes(quote.status)) {
+    summary.totalHT += (quote.totalHT || 0) * multiplier;
+    summary.totalTVA += (quote.totalTVA || 0) * multiplier;
+    summary.totalTTC += (quote.totalTTC || 0) * multiplier;
+
+    if (!isCreditNote && ['acompte_paye', 'facture_acompte', 'facture_solde'].includes(quote.status)) {
       summary.totalDepositsCollected += quote.depositAmountTTC || 0;
     }
 
@@ -57,8 +60,8 @@ export function calculateVatAndRevenueSummary(quotes: Quote[]) {
       ([20, 10, 5.5, 0] as VatRate[]).forEach(rate => {
         const item = quote.vatBreakdown[rate];
         if (item) {
-          summary.byVatRate[rate].baseHT += item.baseHT || 0;
-          summary.byVatRate[rate].vatAmount += item.vatAmount || 0;
+          summary.byVatRate[rate].baseHT += (item.baseHT || 0) * multiplier;
+          summary.byVatRate[rate].vatAmount += (item.vatAmount || 0) * multiplier;
         }
       });
     }
@@ -96,33 +99,37 @@ export function generateSalesJournalCSV(quotes: Quote[], artisan: ArtisanProfile
   ];
 
   const rows = quotes.map(q => {
-    const isDepositPaid = ['acompte_paye', 'facture_acompte', 'facture_solde'].includes(q.status);
-    const depositAmount = q.depositAmountTTC || 0;
-    const remainingToPay = Math.max(0, (q.totalTTC || 0) - (isDepositPaid ? depositAmount : 0));
+    const isCreditNote = q.docType === 'avoir';
+    const multiplier = isCreditNote ? -1 : 1;
+    const isDepositPaid = !isCreditNote && ['acompte_paye', 'facture_acompte', 'facture_solde'].includes(q.status);
+    const depositAmount = isCreditNote ? 0 : (q.depositAmountTTC || 0);
+    const remainingToPay = isCreditNote ? 0 : Math.max(0, (q.totalTTC || 0) - (isDepositPaid ? depositAmount : 0));
 
     const tva20 = q.vatBreakdown?.[20] || { baseHT: 0, vatAmount: 0 };
     const tva10 = q.vatBreakdown?.[10] || { baseHT: 0, vatAmount: 0 };
     const tva55 = q.vatBreakdown?.[5.5] || { baseHT: 0, vatAmount: 0 };
 
+    const docNum = isCreditNote ? (q.creditNoteNumber || q.number) : (q.invoiceNumber || q.number);
+
     return [
       q.createdAt ? q.createdAt.split('T')[0] : '',
       q.signedAt ? q.signedAt.split('T')[0] : '',
-      `"${q.number}"`,
-      `"${q.status}"`,
+      `"${docNum}"`,
+      `"${isCreditNote ? 'Avoir' : q.status}"`,
       `"${(q.client?.name || '').replace(/"/g, '""')}"`,
       `"${q.client?.phone || ''}"`,
       `"${q.client?.email || ''}"`,
       `"${(q.client?.address || '').replace(/"/g, '""')} ${q.client?.city || ''}"`,
-      q.totalHT.toFixed(2),
-      tva20.baseHT.toFixed(2),
-      tva20.vatAmount.toFixed(2),
-      tva10.baseHT.toFixed(2),
-      tva10.vatAmount.toFixed(2),
-      tva55.baseHT.toFixed(2),
-      tva55.vatAmount.toFixed(2),
-      q.totalTVA.toFixed(2),
-      q.totalTTC.toFixed(2),
-      q.depositPercent || 0,
+      (q.totalHT * multiplier).toFixed(2),
+      (tva20.baseHT * multiplier).toFixed(2),
+      (tva20.vatAmount * multiplier).toFixed(2),
+      (tva10.baseHT * multiplier).toFixed(2),
+      (tva10.vatAmount * multiplier).toFixed(2),
+      (tva55.baseHT * multiplier).toFixed(2),
+      (tva55.vatAmount * multiplier).toFixed(2),
+      (q.totalTVA * multiplier).toFixed(2),
+      (q.totalTTC * multiplier).toFixed(2),
+      isCreditNote ? 0 : (q.depositPercent || 0),
       depositAmount.toFixed(2),
       isDepositPaid ? 'OUI' : 'NON',
       remainingToPay.toFixed(2),

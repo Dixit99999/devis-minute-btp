@@ -98,6 +98,51 @@ export function generateInvoiceNumber(existingCount: number, type: 'acompte' | '
   return `${prefix}-${currentYear}-${sequence}`;
 }
 
+export function generateCreditNoteNumber(existingCount: number): string {
+  const currentYear = new Date().getFullYear();
+  const sequence = String(existingCount + 1).padStart(3, '0');
+  return `AV-${currentYear}-${sequence}`;
+}
+
+export interface RoomGroup {
+  roomName: string;
+  items: QuoteItem[];
+  totalHT: number;
+  totalTVA: number;
+  totalTTC: number;
+}
+
+export function groupItemsByRoom(items: QuoteItem[]): RoomGroup[] {
+  const groups: { [key: string]: QuoteItem[] } = {};
+
+  items.forEach((item) => {
+    const room = item.room?.trim() || 'Prestations Générales';
+    if (!groups[room]) {
+      groups[room] = [];
+    }
+    groups[room].push(item);
+  });
+
+  return Object.entries(groups).map(([roomName, roomItems]) => {
+    let totalHT = 0;
+    let totalTVA = 0;
+
+    roomItems.forEach((item) => {
+      const itemHT = (item.quantity || 0) * (item.unitPriceHT || 0);
+      totalHT += itemHT;
+      totalTVA += itemHT * ((item.vatRate || 10) / 100);
+    });
+
+    return {
+      roomName,
+      items: roomItems,
+      totalHT: Math.round(totalHT * 100) / 100,
+      totalTVA: Math.round(totalTVA * 100) / 100,
+      totalTTC: Math.round((totalHT + totalTVA) * 100) / 100,
+    };
+  });
+}
+
 export function parseVoiceInputToItem(text: string): Partial<QuoteItem> | null {
   const clean = text.trim();
   if (!clean) return null;
