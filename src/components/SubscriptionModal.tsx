@@ -97,11 +97,23 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             >
               <div>
                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Solo</span>
-                <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-2xl font-mono font-black text-white">
-                    {billingCycle === 'monthly' ? '39€' : '31€'}
-                  </span>
-                  <span className="text-xs text-slate-500">/ mois</span>
+                <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
+                  {billingCycle === 'monthly' ? (
+                    <>
+                      <span className="text-2xl font-mono font-black text-white">39 €</span>
+                      <span className="text-xs text-slate-400 font-medium">/ mois HT</span>
+                    </>
+                  ) : (
+                    <div className="flex flex-col">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-mono font-black text-white">372 €</span>
+                        <span className="text-xs text-slate-400 font-medium">/ an HT</span>
+                      </div>
+                      <span className="text-[11px] text-emerald-400 font-semibold mt-0.5">
+                        (soit 31 € / mois • 2 mois offerts)
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <ul className="mt-3 space-y-2 text-xs text-slate-300">
                   <li className="flex items-center gap-1.5">
@@ -131,11 +143,23 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               </div>
               <div>
                 <span className="text-xs font-bold text-amber-400 uppercase tracking-wider block">Pro Artisan</span>
-                <div className="mt-1 flex items-baseline gap-1">
-                  <span className="text-2xl font-mono font-black text-amber-400">
-                    {billingCycle === 'monthly' ? '59€' : '47€'}
-                  </span>
-                  <span className="text-xs text-slate-500">/ mois</span>
+                <div className="mt-1 flex items-baseline gap-1.5 flex-wrap">
+                  {billingCycle === 'monthly' ? (
+                    <>
+                      <span className="text-2xl font-mono font-black text-amber-400">59 €</span>
+                      <span className="text-xs text-slate-400 font-medium">/ mois HT</span>
+                    </>
+                  ) : (
+                    <div className="flex flex-col">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-mono font-black text-amber-400">564 €</span>
+                        <span className="text-xs text-slate-400 font-medium">/ an HT</span>
+                      </div>
+                      <span className="text-[11px] text-emerald-400 font-semibold mt-0.5">
+                        (soit 47 € / mois • 2 mois offerts)
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <ul className="mt-3 space-y-2 text-xs text-slate-200">
                   <li className="flex items-center gap-1.5 font-semibold">
@@ -170,7 +194,9 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
               <CreditCard className="w-4 h-4" />
               {isProcessing
                 ? 'Connexion sécurisée Stripe...'
-                : `Démarrer mes 14 jours d'essai gratuits (${selectedPlan === 'pro' ? '59€/m' : '39€/m'})`}
+                : billingCycle === 'yearly'
+                  ? `Démarrer mes 14 jours d'essai (${selectedPlan === 'pro' ? '564€/an • soit 47€/m' : '372€/an • soit 31€/m'})`
+                  : `Démarrer mes 14 jours d'essai (${selectedPlan === 'pro' ? '59€/mois' : '39€/mois'})`}
             </button>
           )}
 

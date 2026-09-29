@@ -28,6 +28,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartFreeTrial }) =>
   const [quotesPerMonth, setQuotesPerMonth] = useState<number>(15);
   const [minutesPerQuote, setMinutesPerQuote] = useState<number>(45);
   const [hourlyRate, setHourlyRate] = useState<number>(60);
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
 
   // Calculs du simulateur
   // Temps économisé : on passe de 45 min le soir à 2 min sur place -> ~40 min économisées par devis
@@ -372,11 +373,49 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartFreeTrial }) =>
           <h2 className="text-2xl font-black text-white">Un tarif unique, clair et sans engagement</h2>
         </div>
 
-        <div className="py-3">
-          <div className="text-4xl font-mono font-black text-white">
-            59 € <span className="text-sm font-sans font-normal text-slate-400">/ mois HT</span>
+        {/* Toggle Mensuel / Annuel */}
+        <div className="flex justify-center pt-1">
+          <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center gap-1 text-xs">
+            <button
+              type="button"
+              onClick={() => setBillingPeriod('monthly')}
+              className={`px-3 py-1.5 rounded-lg font-bold transition ${
+                billingPeriod === 'monthly' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Mensuel
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingPeriod('yearly')}
+              className={`px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition ${
+                billingPeriod === 'yearly' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Annuel <span className="text-[10px] bg-emerald-500 text-slate-950 px-1 rounded font-black">-20%</span>
+            </button>
           </div>
-          <p className="text-xs text-emerald-400 font-bold mt-1">14 jours d'essai 100% gratuit • Annulable en 1 clic</p>
+        </div>
+
+        <div className="py-2">
+          {billingPeriod === 'monthly' ? (
+            <div>
+              <div className="text-4xl font-mono font-black text-white">
+                59 € <span className="text-sm font-sans font-normal text-slate-400">/ mois HT</span>
+              </div>
+              <p className="text-xs text-emerald-400 font-bold mt-1">14 jours d'essai 100% gratuit • Annulable en 1 clic</p>
+            </div>
+          ) : (
+            <div>
+              <div className="text-4xl font-mono font-black text-amber-400">
+                564 € <span className="text-sm font-sans font-normal text-slate-300">/ an HT</span>
+              </div>
+              <div className="text-xs text-emerald-400 font-bold mt-1">
+                (soit 47 € / mois • 2 mois offerts)
+              </div>
+              <p className="text-[11px] text-slate-400 mt-1">Facturation annuelle unique • 14 jours d'essai offerts</p>
+            </div>
+          )}
         </div>
 
         <ul className="space-y-2 text-xs text-slate-300 text-left max-w-xs mx-auto">
@@ -407,7 +446,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartFreeTrial }) =>
           onClick={handleCtaClick}
           className="w-full py-4 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-sm rounded-2xl shadow-xl glow-amber transition flex items-center justify-center gap-2"
         >
-          <span>Démarrer mes 14 jours gratuits</span>
+          <span>
+            {billingPeriod === 'yearly'
+              ? "Démarrer mes 14 jours d'essai (564€/an)"
+              : "Démarrer mes 14 jours d'essai (59€/mois)"}
+          </span>
           <ArrowRight className="w-4 h-4" />
         </button>
 
