@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ArtisanProfile } from '../types';
-import { Shield, Building2, Phone, Check, Save } from 'lucide-react';
+import { Shield, Building2, Phone, Check, Save, CreditCard } from 'lucide-react';
 
 interface ArtisanSettingsProps {
   profile: ArtisanProfile;
@@ -210,6 +210,46 @@ export const ArtisanSettings: React.FC<ArtisanSettingsProps> = ({ profile, onSav
                 onChange={(e) => handleChange('decennalePoliceNumber', e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-amber-400 outline-none"
                 required
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Coordonnées Bancaires (RIB / IBAN / BIC) */}
+        <div className="glass-card p-5 rounded-2xl space-y-4 border-emerald-500/20">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-emerald-300 flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-emerald-400" />
+              Coordonnées Bancaires (Paiement par Virement & Facturation)
+            </h3>
+            <span className="text-[10px] bg-emerald-500/10 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 font-semibold">
+              Pied de Facture
+            </span>
+          </div>
+          <p className="text-xs text-slate-400">
+            Ces coordonnées apparaîtront en bas de vos factures pour permettre à vos clients de régler leur acompte ou solde par virement bancaire.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="sm:col-span-2">
+              <label className="text-xs font-medium text-slate-400 block mb-1">IBAN (Format Français)</label>
+              <input
+                type="text"
+                value={formData.ribIban || ''}
+                onChange={(e) => handleChange('ribIban', e.target.value)}
+                placeholder="FR76 3000 4000 0100 0123 4567 890"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-emerald-400 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-medium text-slate-400 block mb-1">Code BIC / SWIFT</label>
+              <input
+                type="text"
+                value={formData.ribBic || ''}
+                onChange={(e) => handleChange('ribBic', e.target.value)}
+                placeholder="BNPAFRPP"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:border-emerald-400 outline-none"
               />
             </div>
           </div>
