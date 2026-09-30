@@ -21,9 +21,10 @@ import confetti from 'canvas-confetti';
 
 interface LandingPageProps {
   onStartFreeTrial: () => void;
+  onOpenLegal?: (tab: 'mentions' | 'privacy' | 'cgv') => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onStartFreeTrial }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onStartFreeTrial, onOpenLegal }) => {
   // Simulateur de ROI
   const [quotesPerMonth, setQuotesPerMonth] = useState<number>(15);
   const [minutesPerQuote, setMinutesPerQuote] = useState<number>(45);
@@ -458,6 +459,43 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartFreeTrial }) =>
           Sans engagement. Déductible de vos charges d'entreprise (Frais professionnels).
         </p>
       </section>
+
+      {/* 7. FOOTER LÉGAL & CONFORMITÉ */}
+      <footer className="border-t border-slate-800/80 pt-8 pb-4 text-center space-y-4">
+        <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-slate-400">
+          {onOpenLegal && (
+            <>
+              <button
+                type="button"
+                onClick={() => onOpenLegal('mentions')}
+                className="hover:text-amber-400 transition"
+              >
+                Mentions Légales
+              </button>
+              <span className="text-slate-600">•</span>
+              <button
+                type="button"
+                onClick={() => onOpenLegal('privacy')}
+                className="hover:text-amber-400 transition"
+              >
+                Politique de Confidentialité (RGPD)
+              </button>
+              <span className="text-slate-600">•</span>
+              <button
+                type="button"
+                onClick={() => onOpenLegal('cgv')}
+                className="hover:text-amber-400 transition"
+              >
+                Conditions Générales (CGV / CGU)
+              </button>
+            </>
+          )}
+        </div>
+
+        <p className="text-[11px] text-slate-400">
+          © {new Date().getFullYear()} Devis Minute BTP • Conçu pour les artisans et professionnels du BTP en France.
+        </p>
+      </footer>
     </div>
   );
 };

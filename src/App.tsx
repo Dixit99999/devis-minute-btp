@@ -18,6 +18,7 @@ import { SubscriptionModal } from './components/SubscriptionModal';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { InstallPwaModal } from './components/InstallPwaModal';
 import { LandingPage } from './components/LandingPage';
+import { LegalModal } from './components/LegalModal';
 import {
   FileText,
   ListFilter,
@@ -153,6 +154,8 @@ export function App() {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState<boolean>(false);
   const [showInstallModal, setShowInstallModal] = useState<boolean>(false);
+  const [showLegalModal, setShowLegalModal] = useState<boolean>(false);
+  const [legalDefaultTab, setLegalDefaultTab] = useState<'mentions' | 'privacy' | 'cgv'>('mentions');
 
   // Sauvegarde locale Offline-First
   useEffect(() => {
@@ -426,7 +429,13 @@ export function App() {
       {/* Main Content Area */}
       <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6">
         {activeView === 'landing' && (
-          <LandingPage onStartFreeTrial={() => setActiveView('editor')} />
+          <LandingPage
+            onStartFreeTrial={() => setActiveView('editor')}
+            onOpenLegal={(tab) => {
+              setLegalDefaultTab(tab);
+              setShowLegalModal(true);
+            }}
+          />
         )}
 
         {activeView === 'editor' && (
@@ -505,6 +514,42 @@ export function App() {
               profile={artisan}
               onSave={(updated) => setArtisan(updated)}
             />
+
+            {/* Pied de page Réglages : Accès rapide Conformité Légale & RGPD */}
+            <div className="pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-400">
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalDefaultTab('mentions');
+                  setShowLegalModal(true);
+                }}
+                className="hover:text-amber-400 transition"
+              >
+                Mentions Légales
+              </button>
+              <span className="text-slate-600">•</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalDefaultTab('privacy');
+                  setShowLegalModal(true);
+                }}
+                className="hover:text-amber-400 transition"
+              >
+                Confidentialité & RGPD
+              </button>
+              <span className="text-slate-600">•</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setLegalDefaultTab('cgv');
+                  setShowLegalModal(true);
+                }}
+                className="hover:text-amber-400 transition"
+              >
+                Conditions Générales (CGV / CGU)
+              </button>
+            </div>
           </div>
         )}
       </main>
@@ -570,6 +615,13 @@ export function App() {
       <InstallPwaModal
         isOpen={showInstallModal}
         onClose={() => setShowInstallModal(false)}
+      />
+
+      {/* Modale Juridique & Conformité Réglementaire (LCEN, RGPD, CGV) */}
+      <LegalModal
+        isOpen={showLegalModal}
+        onClose={() => setShowLegalModal(false)}
+        defaultTab={legalDefaultTab}
       />
     </div>
   );
