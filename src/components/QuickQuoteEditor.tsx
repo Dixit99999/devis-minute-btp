@@ -58,6 +58,7 @@ interface QuickQuoteEditorProps {
   onOpenSignature: () => void;
   onOpenPreview: () => void;
   onOpenPayment?: () => void;
+  onOpenClientSign?: () => void;
   onConvertToInvoice?: (type: 'acompte' | 'solde') => void;
 }
 
@@ -68,6 +69,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
   onOpenSignature,
   onOpenPreview,
   onOpenPayment,
+  onOpenClientSign,
   onConvertToInvoice,
 }) => {
   const [activeTab, setActiveTab] = useState<'editor' | 'catalog'>('editor');
@@ -1119,6 +1121,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
         onOpenPreview={onOpenPreview}
+        onOpenClientSign={onOpenClientSign}
       />
     </div>
   );

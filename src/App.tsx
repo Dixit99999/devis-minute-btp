@@ -19,6 +19,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { InstallPwaModal } from './components/InstallPwaModal';
 import { LandingPage } from './components/LandingPage';
 import { LegalModal } from './components/LegalModal';
+import { ClientSignView } from './components/ClientSignView';
 import {
   FileText,
   ListFilter,
@@ -145,6 +146,16 @@ export function App() {
 
   // Onglet courant : 'landing' | 'editor' | 'list' | 'settings'
   const [activeView, setActiveView] = useState<'landing' | 'editor' | 'list' | 'settings'>('editor');
+
+  // Détection URL signature client à distance (?sign=... ou ?quote=...)
+  const [clientSignQuoteId, setClientSignQuoteId] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('sign') || params.get('quote') || null;
+    }
+    return null;
+  });
+  const [isClientSignTesting, setIsClientSignTesting] = useState(false);
 
   // Modales
   const [isSignatureOpen, setIsSignatureOpen] = useState(false);
@@ -312,6 +323,37 @@ export function App() {
     setShowOnboarding(false);
   };
 
+  // VUE AUTONOME CLIENT : Signature électronique à distance (Lien direct SMS / WhatsApp / Email)
+  if (clientSignQuoteId || isClientSignTesting) {
+    const signQuote =
+      quotes.find((q) => q.id === (clientSignQuoteId || currentQuote.id)) || currentQuote;
+
+    return (
+      <ClientSignView
+        quote={signQuote}
+        artisan={artisan}
+        onSignComplete={(signedQuote) => {
+          handleUpdateCurrentQuote(signedQuote);
+          if (artisan.sendSmsOnSign || artisan.sendEmailOnSign) {
+            const recipient = artisan.notificationPhone || artisan.phone || '06 ** ** ** **';
+            setActiveAlert({
+              type: 'sms',
+              title: '🔔 Devis Signé en Ligne par le Client !',
+              message: `Alerte SMS transmise au ${recipient} : Devis ${signedQuote.number} validé et signé par ${signedQuote.client.name || 'le client'} (${signedQuote.totalTTC.toFixed(2)} € TTC).`,
+            });
+          }
+        }}
+        onBackToApp={() => {
+          setClientSignQuoteId(null);
+          setIsClientSignTesting(false);
+          if (typeof window !== 'undefined' && window.history) {
+            window.history.replaceState({}, '', window.location.pathname);
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
       theme === 'light' ? 'bg-slate-100 text-slate-900 theme-light' : 'bg-slate-950 text-slate-100'
@@ -446,6 +488,7 @@ export function App() {
             onOpenSignature={() => setIsSignatureOpen(true)}
             onOpenPreview={() => setIsPDFOpen(true)}
             onOpenPayment={() => setIsPaymentOpen(true)}
+            onOpenClientSign={() => setIsClientSignTesting(true)}
             onConvertToInvoice={(type) => handleConvertToInvoice(type)}
           />
         )}
@@ -595,6 +638,10 @@ export function App() {
           onOpenPayment={() => {
             setIsPDFOpen(false);
             setIsPaymentOpen(true);
+          }}
+          onOpenClientSign={() => {
+            setIsPDFOpen(false);
+            setIsClientSignTesting(true);
           }}
           onConvertToInvoice={handleConvertToInvoice}
           onCreateCreditNote={handleCreateCreditNote}

@@ -26,6 +26,7 @@ interface QuotePDFModalProps {
   artisan: ArtisanProfile;
   onClose: () => void;
   onOpenPayment?: () => void;
+  onOpenClientSign?: () => void;
   onConvertToInvoice?: (type: 'acompte' | 'solde') => void;
   onCreateCreditNote?: (quote: Quote, reason: string) => void;
 }
@@ -35,6 +36,7 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
   artisan,
   onClose,
   onOpenPayment,
+  onOpenClientSign,
   onConvertToInvoice,
   onCreateCreditNote,
 }) => {
@@ -750,6 +752,7 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
         artisan={artisan}
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
+        onOpenClientSign={onOpenClientSign}
       />
 
       {/* Modale de Confirmation & Motif d'Avoir */}

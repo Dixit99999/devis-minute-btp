@@ -21,6 +21,7 @@ interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
   onOpenPreview?: () => void;
+  onOpenClientSign?: () => void;
 }
 
 export const ShareModal: React.FC<ShareModalProps> = ({
@@ -29,8 +30,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   isOpen,
   onClose,
   onOpenPreview,
+  onOpenClientSign,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [customPhone, setCustomPhone] = useState(quote.client.phone || '');
   const [customEmail, setCustomEmail] = useState(quote.client.email || '');
   const [shareFormat, setShareFormat] = useState<'detailed' | 'short'>('detailed');
@@ -49,6 +52,10 @@ export const ShareModal: React.FC<ShareModalProps> = ({
   const docNumber = quote.invoiceNumber || quote.creditNoteNumber || quote.number;
   const clientName = quote.client.name ? quote.client.name.trim() : 'Madame, Monsieur';
 
+  const liveSignUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/?sign=${quote.id}`
+    : `https://devis-minute-btp.vercel.app/?sign=${quote.id}`;
+
   // 1. GÉNÉRATION DU DEVIS COMPLET INTÉGRAL (Ligne par ligne)
   const generateDetailedText = () => {
     const grouped = groupItemsByRoom(quote.items);
@@ -66,7 +73,7 @@ export const ShareModal: React.FC<ShareModalProps> = ({
     const signatureStatus =
       quote.status === 'signe' || quote.status === 'acompte_paye'
         ? `✅ Document validé et signé électroniquement le ${quote.signedAt || quote.createdAt}`
-        : `⏳ Devis en attente de validation • Valable jusqu'au ${quote.validUntil}`;
+        : `⏳ Devis en attente de validation • Valable jusqu'au ${quote.validUntil}\n✍️ VALIDER & SIGNER EN LIGNE (sur votre smartphone) :\n👉 ${liveSignUrl}`;
 
     const depositText =
       quote.depositPercent > 0
@@ -105,7 +112,7 @@ Merci de votre confiance.`;
   const generateShortText = () => {
     return quote.status === 'signe' || quote.status === 'acompte_paye'
       ? `Bonjour ${clientName},\n\nVotre ${docTypeLabel.toLowerCase()} n°${docNumber} d'un montant de ${formatEuro(quote.totalTTC)} TTC a bien été validé et signé.\n\nEntreprise : ${artisan.companyName} (${artisan.phone})\nMerci de votre confiance.`
-      : `Bonjour ${clientName},\n\nVeuillez trouver votre ${docTypeLabel.toLowerCase()} n°${docNumber} d'un montant de ${formatEuro(quote.totalTTC)} TTC pour vos travaux.\n\nEntreprise : ${artisan.companyName}\nTéléphone : ${artisan.phone}\nValidité du devis : jusqu'au ${quote.validUntil}\n\nRestant à votre entière disposition.`;
+      : `Bonjour ${clientName},\n\nVeuillez trouver votre ${docTypeLabel.toLowerCase()} n°${docNumber} d'un montant de ${formatEuro(quote.totalTTC)} TTC pour vos travaux.\n\n✍️ Vous pouvez le consulter, le valider et le signer au doigt sur votre smartphone ici :\n👉 ${liveSignUrl}\n\nEntreprise : ${artisan.companyName}\nTéléphone : ${artisan.phone}\nValidité : jusqu'au ${quote.validUntil}\n\nRestant à votre entière disposition.`;
   };
 
   const messageText = shareFormat === 'detailed' ? generateDetailedText() : generateShortText();
@@ -289,6 +296,52 @@ Merci de votre confiance.`;
               </div>
               <span className="text-[11px] font-black">Email Pro</span>
             </button>
+          </div>
+
+          {/* Encadré Dédié : Lien de Signature Client Autonome */}
+          <div className="bg-slate-950/80 border border-amber-500/40 p-3.5 rounded-2xl space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" />
+                Lien Direct Signature Client (Smartphone)
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(liveSignUrl);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                }}
+                className="text-[11px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 transition"
+              >
+                {linkCopied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+                {linkCopied ? 'Lien copié !' : 'Copier le lien'}
+              </button>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                readOnly
+                value={liveSignUrl}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-[11px] text-slate-300 font-mono outline-none"
+              />
+              {onOpenClientSign && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenClientSign();
+                  }}
+                  className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-bold text-xs whitespace-nowrap shadow glow-amber transition"
+                  title="Simuler ce que voit le client sur son smartphone"
+                >
+                  Tester vue client
+                </button>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-400">
+              💡 Le client ouvre ce lien sur son téléphone, signe au doigt et valide en 5 secondes. Vous êtes immédiatement notifié.
+            </p>
           </div>
 
           {/* Aperçu Complet du Message & Copie Presse-papier */}
