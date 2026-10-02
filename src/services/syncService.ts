@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
-import type { Quote, ArtisanProfile, PresetCatalogItem } from '../types';
+import type { Quote, ArtisanProfile } from '../types';
 
 /**
  * Service de Synchronisation Supabase / Offline-First
