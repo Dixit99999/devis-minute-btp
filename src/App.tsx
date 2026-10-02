@@ -20,6 +20,13 @@ import { InstallPwaModal } from './components/InstallPwaModal';
 import { LandingPage } from './components/LandingPage';
 import { LegalModal } from './components/LegalModal';
 import { ClientSignView } from './components/ClientSignView';
+import { supabase, isSupabaseConfigured } from './lib/supabase';
+import {
+  syncQuoteToCloud,
+  fetchQuotesFromCloud,
+  syncProfileToCloud,
+  fetchProfileFromCloud,
+} from './services/syncService';
 import {
   FileText,
   ListFilter,
@@ -63,6 +70,40 @@ export function App() {
   const [userEmail, setUserEmail] = useState<string | null>(() => {
     return localStorage.getItem(STORAGE_KEY_USER_EMAIL) || null;
   });
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Synchronisation avec Supabase Auth & Cloud Database
+  useEffect(() => {
+    if (isSupabaseConfigured && supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          setUserId(session.user.id);
+          setUserEmail(session.user.email || null);
+          fetchProfileFromCloud(session.user.id).then((cloudProfile) => {
+            if (cloudProfile) setArtisan((prev) => ({ ...prev, ...cloudProfile }));
+          });
+          fetchQuotesFromCloud(session.user.id).then((cloudQuotes) => {
+            if (cloudQuotes && cloudQuotes.length > 0) {
+              setQuotes(cloudQuotes);
+              setCurrentQuote(cloudQuotes[0]);
+            }
+          });
+        }
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          setUserId(session.user.id);
+          setUserEmail(session.user.email || null);
+        } else {
+          setUserId(null);
+          setUserEmail(null);
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    }
+  }, []);
 
   // Notification Toast Instantanée (Simulation SMS / Email reçu)
   const [activeAlert, setActiveAlert] = useState<{ title: string; message: string; type: 'sms' | 'email' | 'info' } | null>(null);
@@ -182,7 +223,10 @@ export function App() {
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_ARTISAN, JSON.stringify(artisan));
-  }, [artisan]);
+    if (userId) {
+      syncProfileToCloud(artisan, userId);
+    }
+  }, [artisan, userId]);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY_QUOTES, JSON.stringify(quotes));
@@ -199,6 +243,9 @@ export function App() {
     setQuotes((prev) =>
       prev.map((q) => (q.id === updatedQuote.id ? updatedQuote : q))
     );
+    if (userId) {
+      syncQuoteToCloud(updatedQuote, userId);
+    }
   };
 
   const handleCreateNewQuote = () => {
