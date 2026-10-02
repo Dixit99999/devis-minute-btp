@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ArtisanProfile } from '../types';
-import { Shield, Building2, Phone, Check, Save, CreditCard } from 'lucide-react';
+import { Shield, Building2, Phone, Check, Save, CreditCard, Clock, Euro } from 'lucide-react';
 
 interface ArtisanSettingsProps {
   profile: ArtisanProfile;
@@ -11,7 +11,7 @@ export const ArtisanSettings: React.FC<ArtisanSettingsProps> = ({ profile, onSav
   const [formData, setFormData] = useState<ArtisanProfile>(profile);
   const [saved, setSaved] = useState(false);
 
-  const handleChange = (field: keyof ArtisanProfile, value: string) => {
+  const handleChange = (field: keyof ArtisanProfile, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -21,6 +21,8 @@ export const ArtisanSettings: React.FC<ArtisanSettingsProps> = ({ profile, onSav
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
+
+  const hourlyRatePresets = [45, 50, 55, 60, 65, 70, 75, 85];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20 animate-in fade-in">
@@ -37,6 +39,64 @@ export const ArtisanSettings: React.FC<ArtisanSettingsProps> = ({ profile, onSav
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Section Tarification & Taux horaire */}
+        <div className="glass-card p-5 rounded-2xl space-y-4 border-amber-500/30 bg-gradient-to-br from-slate-900/90 to-amber-950/20 shadow-lg">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold text-amber-300 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-400" />
+              Tarification & Taux horaire de Main-d'œuvre
+            </h3>
+            <span className="text-[10px] bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold">
+              Référence Dictée & Devis
+            </span>
+          </div>
+
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Définissez votre tarif horaire de base. Il sera automatiquement appliqué lors de la dictée vocale IA, des boutons d'ajout rapide (<span className="text-amber-400 font-bold">+1h</span>, <span className="text-amber-400 font-bold">+2h</span>) et pour vos chiffrages de pose.
+          </p>
+
+          <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                <Euro className="w-4 h-4 text-amber-400" />
+                Taux horaire par défaut (€ HT / heure) :
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="20"
+                  max="300"
+                  step="1"
+                  value={formData.defaultHourlyRate || 60}
+                  onChange={(e) => handleChange('defaultHourlyRate', Number(e.target.value) || 0)}
+                  className="w-28 bg-slate-900 border-2 border-amber-500/60 rounded-xl px-3 py-2 text-base font-black text-amber-400 text-center font-mono focus:border-amber-400 outline-none shadow-inner"
+                  required
+                />
+                <span className="text-xs font-bold text-slate-400">€ HT / h</span>
+              </div>
+            </div>
+
+            {/* Presets rapides de taux horaire */}
+            <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-slate-400 font-medium">Sélection rapide :</span>
+              {hourlyRatePresets.map((rate) => (
+                <button
+                  key={rate}
+                  type="button"
+                  onClick={() => handleChange('defaultHourlyRate', rate)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    formData.defaultHourlyRate === rate
+                      ? 'bg-amber-500 text-slate-950 shadow-md glow-amber'
+                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                  }`}
+                >
+                  {rate} €/h
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Identité Entreprise */}
         <div className="glass-card p-5 rounded-2xl space-y-4">
           <h3 className="text-sm font-bold text-slate-200 flex items-center gap-2">

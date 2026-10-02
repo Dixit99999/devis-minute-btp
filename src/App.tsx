@@ -664,6 +664,7 @@ export function App() {
                 onOpenPayment={() => setIsPaymentOpen(true)}
                 onOpenClientSign={() => setIsClientSignTesting(true)}
                 onConvertToInvoice={(type) => handleConvertToInvoice(type)}
+                onOpenSettings={() => setActiveView('settings')}
               />
             )}
 

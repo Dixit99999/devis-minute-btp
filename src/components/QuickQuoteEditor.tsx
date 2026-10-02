@@ -60,6 +60,7 @@ interface QuickQuoteEditorProps {
   onOpenPayment?: () => void;
   onOpenClientSign?: () => void;
   onConvertToInvoice?: (type: 'acompte' | 'solde') => void;
+  onOpenSettings?: () => void;
 }
 
 export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
@@ -71,6 +72,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
   onOpenPayment,
   onOpenClientSign,
   onConvertToInvoice,
+  onOpenSettings,
 }) => {
   const [activeTab, setActiveTab] = useState<'editor' | 'catalog'>('editor');
   const [selectedTrade, setSelectedTrade] = useState<string>('all');
@@ -403,9 +405,23 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
                 {quote.status === 'signe' ? 'Signé' : 'Brouillon'}
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {artisan.companyName} • Taux réf : {artisan.defaultHourlyRate || 60}€/h
-            </p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-[11px] text-slate-400">{artisan.companyName}</span>
+              <span className="text-slate-600">•</span>
+              {onOpenSettings ? (
+                <button
+                  type="button"
+                  onClick={onOpenSettings}
+                  title="Modifier votre taux horaire dans les réglages"
+                  className="text-[11px] text-amber-400 hover:text-amber-300 font-bold underline decoration-dotted decoration-amber-500/50 flex items-center gap-1 transition"
+                >
+                  <Clock className="w-3 h-3 text-amber-400" />
+                  Taux : {artisan.defaultHourlyRate || 60}€/h (modifier)
+                </button>
+              ) : (
+                <span className="text-[11px] text-slate-400">Taux réf : {artisan.defaultHourlyRate || 60}€/h</span>
+              )}
+            </div>
           </div>
         </div>
 
