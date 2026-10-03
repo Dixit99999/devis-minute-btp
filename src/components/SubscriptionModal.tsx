@@ -21,7 +21,22 @@ export const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
 
   const handleSubscribe = () => {
     setIsProcessing(true);
-    // Simulation / Redirection Stripe Checkout
+
+    const monthlyLink = import.meta.env.VITE_STRIPE_MONTHLY_LINK;
+    const yearlyLink = import.meta.env.VITE_STRIPE_YEARLY_LINK;
+    const targetLink = billingCycle === 'yearly' ? yearlyLink : monthlyLink;
+
+    if (targetLink) {
+      // Redirection Stripe Checkout réelle
+      const url = new URL(targetLink);
+      if (_userEmail) {
+        url.searchParams.set('prefilled_email', _userEmail);
+      }
+      window.location.href = url.toString();
+      return;
+    }
+
+    // Mode Démo / Essai activé
     setTimeout(() => {
       setIsProcessing(false);
       setSubscribed(true);

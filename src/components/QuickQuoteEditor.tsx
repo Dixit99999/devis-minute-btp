@@ -205,6 +205,13 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
     updateCalculation([...quote.items, newItem]);
   };
 
+  const handlePhotosChange = (newPhotos: QuotePhoto[]) => {
+    onUpdateQuote({
+      ...quote,
+      photos: newPhotos,
+    });
+  };
+
   const handleAddQuickTravel = () => {
     const newItem: QuoteItem = {
       id: 'item-travel-' + Date.now(),
@@ -954,6 +961,12 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
           </div>
         </div>
       )}
+
+      {/* Section Photos de Chantier & Constats */}
+      <PhotoUploadSection
+        photos={quote.photos || []}
+        onChange={handlePhotosChange}
+      />
 
       {/* Bloc Remise Commerciale & Marge Discrète */}
       <div className="glass-card p-3.5 rounded-xl space-y-3">

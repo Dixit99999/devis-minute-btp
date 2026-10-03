@@ -10,6 +10,7 @@ import {
   CreditCard,
   Building2,
   Check,
+  Camera,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -261,6 +262,34 @@ export const ClientSignView: React.FC<ClientSignViewProps> = ({
               </div>
             )}
           </div>
+
+          {/* Photos de Chantier & Constats pour le Client */}
+          {quote.photos && quote.photos.filter((p) => p.includeInPdf !== false).length > 0 && (
+            <div className="p-4 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-3">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-amber-400" />
+                <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+                  Photos du Chantier & Constat ({quote.photos.filter((p) => p.includeInPdf !== false).length})
+                </h4>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {quote.photos
+                  .filter((p) => p.includeInPdf !== false)
+                  .map((photo) => (
+                    <div key={photo.id} className="rounded-xl overflow-hidden border border-slate-700 bg-slate-950">
+                      <img
+                        src={photo.dataUrl}
+                        alt={photo.caption}
+                        className="w-full h-24 sm:h-28 object-cover"
+                      />
+                      <div className="p-1.5 bg-slate-950/90 text-[10px] text-slate-300 truncate font-medium">
+                        {photo.caption || 'Constat chantier'}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           {/* Zone de Signature Tactile */}
           {!isSigned ? (

@@ -20,6 +20,7 @@ import { InstallPwaModal } from './components/InstallPwaModal';
 import { LandingPage } from './components/LandingPage';
 import { LegalModal } from './components/LegalModal';
 import { ClientSignView } from './components/ClientSignView';
+import { PwaInstallBanner } from './components/PwaInstallBanner';
 import { supabase, isSupabaseConfigured } from './lib/supabase';
 import {
   syncQuoteToCloud,
@@ -448,6 +449,9 @@ export function App() {
     <div className={`min-h-screen flex flex-col font-sans transition-colors duration-200 ${
       theme === 'light' ? 'bg-slate-100 text-slate-900 theme-light' : 'bg-slate-950 text-slate-100'
     }`}>
+      {/* Bannière d'installation PWA 1-Clic */}
+      <PwaInstallBanner />
+
       {/* Navigation Top Bar Mobile-Optimized */}
       <header className={`sticky top-0 z-30 backdrop-blur-md border-b transition-colors duration-200 ${
         theme === 'light' ? 'bg-white/95 border-slate-200 shadow-sm' : 'bg-slate-900/95 border-slate-800'

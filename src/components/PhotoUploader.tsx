@@ -2,20 +2,17 @@ import React, { useRef, useState } from 'react';
 import type { QuotePhoto } from '../types';
 import { Camera, Image as ImageIcon, Trash2, Eye, Plus, Check, FileCheck } from 'lucide-react';
 
-interface PhotoUploadSectionProps {
+interface PhotoUploaderProps {
   photos: QuotePhoto[];
   onChange: (photos: QuotePhoto[]) => void;
 }
 
-export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
-  photos = [],
-  onChange,
-}) => {
+export const PhotoUploader: React.FC<PhotoUploaderProps> = ({ photos = [], onChange }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPhotoForPreview, setSelectedPhotoForPreview] = useState<QuotePhoto | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Compression côté client via canvas pour limiter la taille mémoire et optimiser le PDF
+  // Fonction de compression d'image pour ne pas saturer le stockage ni le PDF
   const compressImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -43,6 +40,7 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
           }
 
           ctx.drawImage(img, 0, 0, width, height);
+          // Export JPEG compressé
           const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.75);
           resolve(compressedDataUrl);
         };
@@ -93,7 +91,7 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
   };
 
   return (
-    <div className="glass-card p-4 rounded-2xl space-y-3 border-amber-500/20">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Camera className="w-4 h-4 text-amber-400" />
@@ -101,8 +99,8 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
             Photos de Chantier & Constats ({photos.length})
           </h4>
         </div>
-        <span className="text-[10px] text-amber-400/80 font-medium hidden sm:inline">
-          Recommandé : rassure le client & accélère la signature
+        <span className="text-[10px] text-slate-400">
+          Recommandé pour accélérer la signature
         </span>
       </div>
 
@@ -117,25 +115,25 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
       />
 
       {/* Grille des photos */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {/* Bouton d'ajout */}
         <button
           type="button"
           onClick={() => fileInputRef.current?.click()}
           disabled={isProcessing}
-          className="h-32 rounded-xl border-2 border-dashed border-amber-500/40 hover:border-amber-400 bg-amber-500/5 hover:bg-amber-500/10 transition flex flex-col items-center justify-center gap-1.5 text-amber-400 group cursor-pointer"
+          className="h-36 rounded-2xl border-2 border-dashed border-amber-500/40 hover:border-amber-400 bg-amber-500/5 hover:bg-amber-500/10 transition flex flex-col items-center justify-center gap-2 text-amber-400 group cursor-pointer"
         >
           {isProcessing ? (
             <div className="w-6 h-6 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <div className="w-8 h-8 rounded-xl bg-amber-500/20 group-hover:scale-110 transition flex items-center justify-center text-amber-300">
-                <Plus className="w-4 h-4" />
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 group-hover:scale-110 transition flex items-center justify-center text-amber-300">
+                <Plus className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-200 group-hover:text-amber-300">
                 Prendre photo
               </span>
-              <span className="text-[9px] text-slate-500">ou importer</span>
+              <span className="text-[10px] text-slate-500">ou importer</span>
             </>
           )}
         </button>
@@ -143,54 +141,54 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
         {photos.map((photo) => (
           <div
             key={photo.id}
-            className="group relative h-32 rounded-xl overflow-hidden border border-slate-700/80 bg-slate-900 flex flex-col shadow"
+            className="group relative h-36 rounded-2xl overflow-hidden border border-slate-700/80 bg-slate-900 flex flex-col shadow-md"
           >
             <img
               src={photo.dataUrl}
               alt={photo.caption}
-              className="w-full h-20 object-cover cursor-pointer group-hover:scale-105 transition duration-300"
+              className="w-full h-24 object-cover cursor-pointer group-hover:scale-105 transition duration-300"
               onClick={() => setSelectedPhotoForPreview(photo)}
             />
 
             {/* Badge type */}
-            <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-slate-950/80 backdrop-blur-sm text-[8px] font-bold text-amber-300 border border-amber-500/30">
+            <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md bg-slate-950/80 backdrop-blur-sm text-[9px] font-bold text-amber-300 border border-amber-500/30">
               {photo.type === 'avant' ? 'Avant' : photo.type === 'apres' ? 'Après' : 'Constat'}
             </span>
 
             {/* Actions overlay */}
-            <div className="absolute top-1 right-1 flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition">
+            <div className="absolute top-1.5 right-1.5 flex items-center gap-1 opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition">
               <button
                 type="button"
                 onClick={() => setSelectedPhotoForPreview(photo)}
-                className="p-1 rounded bg-slate-900/90 text-slate-200 hover:text-white"
+                className="p-1 rounded-lg bg-slate-900/90 text-slate-200 hover:text-white"
                 title="Agrandir"
               >
-                <Eye className="w-3 h-3" />
+                <Eye className="w-3.5 h-3.5" />
               </button>
               <button
                 type="button"
                 onClick={() => handleRemovePhoto(photo.id)}
-                className="p-1 rounded bg-rose-950/90 text-rose-400 hover:text-rose-200 border border-rose-500/30"
+                className="p-1 rounded-lg bg-rose-950/90 text-rose-400 hover:text-rose-200 border border-rose-500/30"
                 title="Supprimer"
               >
-                <Trash2 className="w-3 h-3" />
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {/* Légende & Option PDF */}
-            <div className="p-1 bg-slate-950/90 flex items-center justify-between gap-1 flex-1">
+            <div className="p-1.5 bg-slate-950/90 flex items-center justify-between gap-1 flex-1">
               <input
                 type="text"
                 value={photo.caption}
                 onChange={(e) => handleUpdatePhoto(photo.id, { caption: e.target.value })}
                 placeholder="Légende..."
-                className="bg-transparent text-[9px] text-slate-300 w-full outline-none font-medium truncate"
+                className="bg-transparent text-[10px] text-slate-300 w-full outline-none font-medium truncate"
               />
               <button
                 type="button"
                 onClick={() => handleUpdatePhoto(photo.id, { includeInPdf: !photo.includeInPdf })}
                 title={photo.includeInPdf ? 'Incluse dans le PDF' : 'Non incluse dans le PDF'}
-                className={`p-0.5 rounded text-[9px] shrink-0 font-bold transition flex items-center ${
+                className={`p-1 rounded text-[10px] shrink-0 font-bold transition flex items-center gap-0.5 ${
                   photo.includeInPdf
                     ? 'text-emerald-400 hover:text-emerald-300'
                     : 'text-slate-500 hover:text-slate-400'
@@ -242,13 +240,13 @@ export const PhotoUploadSection: React.FC<PhotoUploadSectionProps> = ({
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2 py-1.5 text-xs text-white outline-none"
                 >
                   <option value="constat">Constat Général</option>
-                  <option value="avant">Avant Travaux (État initial)</option>
+                  <option value="avant">Avant Travaux (État des lieux)</option>
                   <option value="apres">Après Travaux (Réception)</option>
                 </select>
               </div>
 
               <div>
-                <label className="text-[10px] text-slate-400 block mb-1">Affichage sur devis PDF</label>
+                <label className="text-[10px] text-slate-400 block mb-1">Affichage PDF</label>
                 <button
                   type="button"
                   onClick={() => {

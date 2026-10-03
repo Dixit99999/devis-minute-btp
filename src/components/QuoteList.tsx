@@ -12,11 +12,12 @@ import {
   Search,
   MessageSquare,
   Sparkles,
-  AlertCircle,
   Eye,
   Receipt,
   FileSpreadsheet,
   RotateCcw,
+  Mail,
+  Flame,
 } from 'lucide-react';
 import { AccountingExportModal } from './AccountingExportModal';
 
@@ -87,39 +88,71 @@ export const QuoteList: React.FC<QuoteListProps> = ({
     return true;
   });
 
-  // 1. Relance SMS
+  // Helper calcul d'ancienneté du devis en jours
+  const getDaysSinceCreation = (dateStr: string): number => {
+    if (!dateStr) return 0;
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      // Format JJ/MM/AAAA
+      const date = new Date(parseInt(parts[2]), parseInt(parts[1]) - 1, parseInt(parts[0]));
+      const diffTime = Math.abs(Date.now() - date.getTime());
+      return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    }
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 0;
+    const diffTime = Math.abs(Date.now() - date.getTime());
+    return Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  };
+
+  // 1. Relance SMS intelligente avec lien de signature direct
   const handleSendReminderSMS = (quote: Quote, e: React.MouseEvent) => {
     e.stopPropagation();
+    const signUrl = `${window.location.origin}/?sign=${quote.id}`;
     const isSigned = quote.status === 'signe';
     const text = isSigned
       ? encodeURIComponent(
-          `Bonjour ${quote.client.name || ''},\nVotre devis n°${quote.number} est bien validé. Pour bloquer la date d'intervention de ${artisan.companyName}, vous pouvez régler l'acompte de ${formatEuro(quote.depositAmountTTC)} ici : https://pay.devisminute-btp.fr/pay/${quote.id}\nMerci !`
+          `Bonjour ${quote.client.name || ''},\nVotre devis n°${quote.number} est bien validé. Pour bloquer votre date de chantier avec ${artisan.companyName}, vous pouvez régler l'acompte de ${formatEuro(quote.depositAmountTTC)} ici : ${signUrl}\nMerci !`
         )
       : encodeURIComponent(
-          `Bonjour ${quote.client.name || ''},\nJe reviens vers vous concernant le devis n°${quote.number} (${formatEuro(quote.totalTTC)} TTC) pour vos travaux. Avez-vous pu en prendre connaissance ? Je reste à votre entière disposition.\n${artisan.companyName} (${artisan.phone})`
+          `Bonjour ${quote.client.name || ''},\nJe reviens vers vous concernant le devis n°${quote.number} (${formatEuro(quote.totalTTC)} TTC) pour vos travaux.\nVous pouvez consulter le devis et le signer directement sur votre smartphone ici : ${signUrl}\n${artisan.companyName} (${artisan.phone})`
         );
 
     window.open(`sms:${quote.client.phone}?body=${text}`, '_blank');
-    setReminderNotification(`Relance SMS envoyée à ${quote.client.name || 'Client'}`);
+    setReminderNotification(`Relance SMS avec lien de signature envoyée à ${quote.client.name || 'Client'}`);
     setTimeout(() => setReminderNotification(null), 3500);
   };
 
   // 2. Relance WhatsApp
   const handleSendReminderWhatsApp = (quote: Quote, e: React.MouseEvent) => {
     e.stopPropagation();
+    const signUrl = `${window.location.origin}/?sign=${quote.id}`;
     const isSigned = quote.status === 'signe';
     const text = isSigned
       ? encodeURIComponent(
-          `Bonjour ${quote.client.name || ''},\n\nVotre devis n°${quote.number} est bien signé. Afin de planifier le démarrage du chantier, vous pouvez régler l'acompte de ${formatEuro(quote.depositAmountTTC)} par CB sécurisée :\nhttps://pay.devisminute-btp.fr/pay/${quote.id}\n\nCordialement,\n${artisan.companyName} (${artisan.phone})`
+          `Bonjour ${quote.client.name || ''},\n\nVotre devis n°${quote.number} est bien signé. Afin de planifier le démarrage du chantier, vous pouvez régler l'acompte de ${formatEuro(quote.depositAmountTTC)} par CB sécurisée :\n${signUrl}\n\nCordialement,\n${artisan.companyName} (${artisan.phone})`
         )
       : encodeURIComponent(
-          `Bonjour ${quote.client.name || ''},\n\nJe me permets de vous relancer concernant le devis n°${quote.number} d'un montant de ${formatEuro(quote.totalTTC)} TTC pour vos travaux.\n\nAvez-vous des questions particulières ? Je reste joignable au ${artisan.phone}.\n\nBien cordialement,\n${artisan.companyName}`
+          `Bonjour ${quote.client.name || ''},\n\nJe me permets de vous relancer concernant le devis n°${quote.number} d'un montant de ${formatEuro(quote.totalTTC)} TTC pour vos travaux.\n\nVous pouvez le consulter et le signer au doigt sur votre smartphone en 30 secondes via ce lien :\n👉 ${signUrl}\n\nAvez-vous des questions particulières ? Je reste joignable au ${artisan.phone}.\n\nBien cordialement,\n${artisan.companyName}`
         );
 
     const phone = quote.client.phone.replace(/[\s.-]/g, '');
     const cleanPhone = phone.startsWith('0') ? '33' + phone.substring(1) : phone;
     window.open(`https://wa.me/${cleanPhone}?text=${text}`, '_blank');
-    setReminderNotification(`Relance WhatsApp envoyée à ${quote.client.name || 'Client'}`);
+    setReminderNotification(`Relance WhatsApp avec lien de signature envoyée à ${quote.client.name || 'Client'}`);
+    setTimeout(() => setReminderNotification(null), 3500);
+  };
+
+  // 3. Relance Email
+  const handleSendReminderEmail = (quote: Quote, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!quote.client.email) return;
+    const signUrl = `${window.location.origin}/?sign=${quote.id}`;
+    const subject = encodeURIComponent(`Relance : Devis n°${quote.number} - ${artisan.companyName}`);
+    const body = encodeURIComponent(
+      `Bonjour ${quote.client.name || ''},\n\nJe reviens vers vous concernant notre proposition pour vos travaux (Devis n°${quote.number} d'un montant de ${formatEuro(quote.totalTTC)} TTC).\n\nPour valider le devis et réserver votre créneau d'intervention, vous pouvez le signer en ligne en 1 clic via le lien ci-dessous :\n${signUrl}\n\nJe reste à votre entière disposition pour tout renseignement complémentaire.\n\nBien cordialement,\n${artisan.artisanName || artisan.companyName}\n${artisan.companyName}\nTél : ${artisan.phone}`
+    );
+    window.open(`mailto:${quote.client.email}?subject=${subject}&body=${body}`, '_blank');
+    setReminderNotification(`Relance Email envoyée à ${quote.client.email}`);
     setTimeout(() => setReminderNotification(null), 3500);
   };
 
@@ -385,11 +418,29 @@ export const QuoteList: React.FC<QuoteListProps> = ({
                           : 'En attente signature'}
                       </span>
 
-                      {/* Badge Suggestion Relance */}
+                      {/* Badge Suggestion Relance avec Ancienneté */}
                       {isPending && (
-                        <span className="text-[9px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5">
-                          <AlertCircle className="w-2.5 h-2.5" /> À relancer
-                        </span>
+                        (() => {
+                          const days = getDaysSinceCreation(quote.createdAt);
+                          if (days >= 7) {
+                            return (
+                              <span className="text-[9px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 animate-pulse">
+                                <Flame className="w-3 h-3 text-rose-400" /> Relance urgente (+{days}j)
+                              </span>
+                            );
+                          } else if (days >= 2) {
+                            return (
+                              <span className="text-[9px] bg-amber-500/15 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+                                <Clock className="w-3 h-3 text-amber-400" /> En attente ({days}j)
+                              </span>
+                            );
+                          }
+                          return (
+                            <span className="text-[9px] bg-slate-800 text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded font-bold flex items-center gap-0.5">
+                              <Clock className="w-2.5 h-2.5" /> Récent
+                            </span>
+                          );
+                        })()
                       )}
                     </div>
 
@@ -424,27 +475,43 @@ export const QuoteList: React.FC<QuoteListProps> = ({
                   {/* Actions 1-Clic */}
                   <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     {/* Boutons de relance si devis en attente ou signé */}
-                    {(isPending || isSigned) && quote.client.phone && (
+                    {(isPending || isSigned) && (
                       <>
-                        <button
-                          type="button"
-                          onClick={(e) => handleSendReminderWhatsApp(quote, e)}
-                          title="Relancer par WhatsApp en 1 clic"
-                          className="p-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-1 transition"
-                        >
-                          <MessageSquare className="w-3.5 h-3.5" />
-                          <span className="hidden lg:inline">Relance WA</span>
-                        </button>
+                        {quote.client.phone && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={(e) => handleSendReminderWhatsApp(quote, e)}
+                              title="Relancer par WhatsApp avec lien de signature"
+                              className="p-2 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold flex items-center gap-1 transition"
+                            >
+                              <MessageSquare className="w-3.5 h-3.5" />
+                              <span className="hidden lg:inline">Relance WA</span>
+                            </button>
 
-                        <button
-                          type="button"
-                          onClick={(e) => handleSendReminderSMS(quote, e)}
-                          title="Relancer par SMS en 1 clic"
-                          className="p-2 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 rounded-xl text-xs font-bold flex items-center gap-1 transition"
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          <span className="hidden lg:inline">SMS</span>
-                        </button>
+                            <button
+                              type="button"
+                              onClick={(e) => handleSendReminderSMS(quote, e)}
+                              title="Relancer par SMS avec lien de signature"
+                              className="p-2 bg-sky-600/20 hover:bg-sky-600/30 text-sky-400 border border-sky-500/30 rounded-xl text-xs font-bold flex items-center gap-1 transition"
+                            >
+                              <Send className="w-3.5 h-3.5" />
+                              <span className="hidden lg:inline">SMS</span>
+                            </button>
+                          </>
+                        )}
+
+                        {quote.client.email && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleSendReminderEmail(quote, e)}
+                            title="Relancer par Email avec lien de signature"
+                            className="p-2 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 rounded-xl text-xs font-bold flex items-center gap-1 transition"
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                            <span className="hidden lg:inline">Email</span>
+                          </button>
+                        )}
                       </>
                     )}
 
