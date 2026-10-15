@@ -47,11 +47,22 @@ const STORAGE_KEY_TRIAL_START = 'devis_minute_trial_start_date';
 const STORAGE_KEY_THEME = 'devis_minute_theme';
 
 export function App() {
-  // Thème Sombre / Clair (Haute Visibilité Chantier)
+  // Thème Sombre / Clair (Haute Visibilité Chantier) - Option 1 : Lumineux par défaut
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
     const saved = localStorage.getItem(STORAGE_KEY_THEME);
-    return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+    return (saved === 'light' || saved === 'dark') ? saved : 'light';
   });
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY_THEME, theme);
+    if (theme === 'light') {
+      document.documentElement.classList.add('theme-light');
+      document.documentElement.classList.remove('dark');
+    } else {
+      document.documentElement.classList.remove('theme-light');
+      document.documentElement.classList.add('dark');
+    }
+  }, [theme]);
 
   // Profil Artisan persistant
   const [artisan, setArtisan] = useState<ArtisanProfile>(() => {
@@ -456,27 +467,33 @@ export function App() {
       <header className={`sticky top-0 z-30 backdrop-blur-md border-b transition-colors duration-200 ${
         theme === 'light' ? 'bg-white/95 border-slate-200 shadow-sm' : 'bg-slate-900/95 border-slate-800'
       }`}>
-        <div className="max-w-4xl mx-auto px-2 sm:px-4 h-14 flex items-center justify-between w-full">
+        <div className="max-w-4xl mx-auto px-2.5 sm:px-4 h-14 flex items-center justify-between w-full">
           {!userEmail ? (
             <div className="flex items-center justify-between w-full gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shadow glow-amber">
+              {/* Logo & Marque */}
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shadow glow-amber shrink-0">
                   ⚡
                 </div>
-                <div>
-                  <span className="font-black text-xs sm:text-sm tracking-tight text-white block leading-tight">Devis Minute BTP</span>
-                  <span className="text-[10px] text-amber-400 font-bold block">14 jours d'essai offerts</span>
+                <div className="min-w-0">
+                  <span className="font-black text-xs sm:text-sm tracking-tight text-slate-900 dark:text-white block leading-tight truncate">
+                    Devis Minute
+                  </span>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold hidden sm:block">
+                    14 jours d'essai offerts
+                  </span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Actions Visiteur compactes (aucun débordement sur smartphone) */}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
                     setAuthModalMode('login');
                     setShowAuthModal(true);
                   }}
-                  className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition"
+                  className="px-2 sm:px-2.5 py-1.5 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
                 >
                   Connexion
                 </button>
@@ -487,20 +504,20 @@ export function App() {
                     setAuthModalMode('signup');
                     setShowAuthModal(true);
                   }}
-                  className="px-3 sm:px-4 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow glow-amber transition"
+                  className="px-2.5 sm:px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl shadow glow-amber transition"
                 >
-                  Essai 14j Gratuit
+                  Essai 14j
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  className={`p-1.5 sm:px-2 sm:py-1.5 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1 ${
+                  className={`p-1.5 rounded-lg border text-xs font-bold transition flex items-center justify-center ${
                     theme === 'light'
-                      ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200 shadow-sm'
+                      ? 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 shadow-sm'
                       : 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-slate-700'
                   }`}
-                  title={theme === 'dark' ? 'Passer en Mode Plein Soleil (Clair)' : 'Passer en Mode Sombre'}
+                  title={theme === 'dark' ? 'Passer en Mode Lumineux (Clair)' : 'Passer en Mode Sombre'}
                 >
                   {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
                 </button>
@@ -508,102 +525,124 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setShowInstallModal(true)}
-                  className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border border-slate-700 hover:border-amber-500/40 rounded-lg text-xs font-bold flex items-center gap-1 transition"
+                  className="hidden md:flex p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-700 dark:text-slate-300 hover:text-amber-500 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold items-center gap-1 transition"
                   title="Installer l'application sur smartphone"
                 >
-                  <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-                  <span className="hidden lg:inline">Installer l'App</span>
+                  <Smartphone className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Installer</span>
                 </button>
               </div>
             </div>
           ) : (
-            <nav className="flex items-center justify-between sm:justify-center gap-1 sm:gap-2 w-full">
-              <button
-                onClick={() => setActiveView('landing')}
-                className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 sm:gap-1.5 transition ${
-                  activeView === 'landing'
-                    ? 'bg-amber-500 text-slate-950 shadow glow-amber'
-                    : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-                title="Présentation & Simulateur"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Offre</span>
-              </button>
+            <div className="flex items-center justify-between w-full gap-2">
+              {/* Logo compact */}
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-xl bg-amber-500 text-slate-950 flex items-center justify-center font-black text-sm shadow glow-amber shrink-0">
+                  ⚡
+                </div>
+                <div className="min-w-0">
+                  <span className="font-black text-xs sm:text-sm tracking-tight text-slate-900 dark:text-white block leading-tight truncate">
+                    Devis Minute
+                  </span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block truncate">
+                    {artisan.companyName || 'Artisan Pro'}
+                  </span>
+                </div>
+              </div>
 
-              <button
-                onClick={() => setActiveView('editor')}
-                className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 sm:gap-1.5 transition ${
-                  activeView === 'editor'
-                    ? 'bg-amber-500 text-slate-950 shadow glow-amber'
-                    : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                <span>Devis</span>
-              </button>
+              {/* Navigation Desktop (masquée sur mobile, déportée en bas) */}
+              <nav className="hidden md:flex items-center gap-1.5">
+                <button
+                  onClick={() => setActiveView('landing')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                    activeView === 'landing'
+                      ? 'bg-amber-500 text-slate-950 shadow glow-amber'
+                      : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="Présentation & Simulateur"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Offre</span>
+                </button>
 
-              <button
-                onClick={() => setActiveView('list')}
-                className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 sm:gap-1.5 transition ${
-                  activeView === 'list'
-                    ? 'bg-amber-500 text-slate-950 shadow glow-amber'
-                    : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-              >
-                <ListFilter className="w-3.5 h-3.5" />
-                <span>Chantiers</span>
-              </button>
+                <button
+                  onClick={() => setActiveView('editor')}
+                  className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                    activeView === 'editor'
+                      ? 'bg-amber-500 text-slate-950 shadow glow-amber'
+                      : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <FileText className="w-3.5 h-3.5" />
+                  <span>Devis</span>
+                </button>
 
-              <button
-                onClick={() => setActiveView('settings')}
-                className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 sm:gap-1.5 transition ${
-                  activeView === 'settings'
-                    ? 'bg-amber-500 text-slate-950 shadow glow-amber'
-                    : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
-                }`}
-                title="Mon Entreprise"
-              >
-                <Building2 className="w-3.5 h-3.5" />
-                <span>Profil</span>
-              </button>
+                <button
+                  onClick={() => setActiveView('list')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                    activeView === 'list'
+                      ? 'bg-amber-500 text-slate-950 shadow glow-amber'
+                      : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <ListFilter className="w-3.5 h-3.5" />
+                  <span>Chantiers</span>
+                </button>
 
-              {/* Badge Compte à Rebours Essai 14 Jours */}
-              <button
-                type="button"
-                onClick={() => setShowSubscriptionModal(true)}
-                className="px-2.5 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/40 rounded-lg text-xs font-black flex items-center gap-1.5 shadow-sm transition shrink-0"
-                title="Gérer mon forfait"
-              >
-                <Sparkles className="w-3 h-3 fill-current" />
-                <span>{trialDaysRemaining > 0 ? `J-${trialDaysRemaining} Essai` : 'Essai Expiré'}</span>
-              </button>
+                <button
+                  onClick={() => setActiveView('settings')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition ${
+                    activeView === 'settings'
+                      ? 'bg-amber-500 text-slate-950 shadow glow-amber'
+                      : theme === 'light' ? 'text-slate-600 hover:text-slate-900 hover:bg-slate-100' : 'text-slate-300 hover:text-white hover:bg-slate-800'
+                  }`}
+                  title="Mon Entreprise"
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>Profil</span>
+                </button>
+              </nav>
 
-              {/* Bouton Toggle Thème Chantier Plein Soleil / Nuit */}
-              <button
-                type="button"
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1 ${
-                  theme === 'light'
-                    ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200 shadow-sm'
-                    : 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-slate-700'
-                }`}
-                title={theme === 'dark' ? 'Passer en Mode Plein Soleil (Clair)' : 'Passer en Mode Sombre'}
-              >
-                {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-                <span className="hidden md:inline">{theme === 'dark' ? 'Soleil' : 'Nuit'}</span>
-              </button>
+              {/* Actions droites ultra-compactes */}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                {/* Badge Compte à Rebours Essai */}
+                <button
+                  type="button"
+                  onClick={() => setShowSubscriptionModal(true)}
+                  className="px-2 sm:px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30 rounded-lg text-[11px] sm:text-xs font-black flex items-center gap-1 shadow-sm transition shrink-0"
+                  title="Gérer mon forfait"
+                >
+                  <Sparkles className="w-3 h-3 fill-current text-amber-500" />
+                  <span>{trialDaysRemaining > 0 ? `J-${trialDaysRemaining}` : 'Expiré'}</span>
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setShowInstallModal(true)}
-                className="p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-400 border border-slate-700 hover:border-amber-500/40 rounded-lg text-xs font-bold flex items-center gap-1 transition"
-                title="Installer l'application sur smartphone"
-              >
-                <Smartphone className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden lg:inline">Installer l'App</span>
-              </button>
-            </nav>
+                {/* Bouton Toggle Thème */}
+                <button
+                  type="button"
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className={`p-1.5 rounded-lg border text-xs font-bold transition flex items-center justify-center gap-1 ${
+                    theme === 'light'
+                      ? 'bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 shadow-sm'
+                      : 'bg-slate-800 border-slate-700 text-amber-400 hover:bg-slate-700'
+                  }`}
+                  title={theme === 'dark' ? 'Passer en Mode Lumineux (Clair)' : 'Passer en Mode Sombre'}
+                >
+                  {theme === 'dark' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                  <span className="hidden lg:inline">{theme === 'dark' ? 'Soleil' : 'Nuit'}</span>
+                </button>
+
+                {/* Bouton PWA masqué sur mobile */}
+                <button
+                  type="button"
+                  onClick={() => setShowInstallModal(true)}
+                  className="hidden md:flex p-1.5 sm:px-2.5 sm:py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-amber-500/20 text-slate-700 dark:text-slate-300 hover:text-amber-500 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-bold items-center gap-1 transition"
+                  title="Installer l'application sur smartphone"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-amber-500" />
+                  <span>Installer</span>
+                </button>
+              </div>
+            </div>
           )}
         </div>
       </header>
@@ -634,7 +673,7 @@ export function App() {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6">
+      <main className="flex-1 max-w-4xl w-full mx-auto px-3 sm:px-6 py-4 sm:py-6 pb-28 md:pb-8">
         {!userEmail ? (
           <LandingPage
             onStartFreeTrial={() => {
@@ -852,6 +891,71 @@ export function App() {
         onClose={() => setShowLegalModal(false)}
         defaultTab={legalDefaultTab}
       />
+
+      {/* Bottom Navigation Bar Mobile (Style Application Native iOS / Android) */}
+      {userEmail && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 px-2 py-1.5 flex items-center justify-around shadow-2xl">
+          <button
+            type="button"
+            onClick={() => setActiveView('editor')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              activeView === 'editor'
+                ? 'text-amber-600 dark:text-amber-400 font-black'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
+            }`}
+          >
+            <div className={`p-1 rounded-lg ${activeView === 'editor' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : ''}`}>
+              <FileText className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] tracking-tight mt-0.5">Devis</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('list')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              activeView === 'list'
+                ? 'text-amber-600 dark:text-amber-400 font-black'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
+            }`}
+          >
+            <div className={`p-1 rounded-lg ${activeView === 'list' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : ''}`}>
+              <ListFilter className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] tracking-tight mt-0.5">Chantiers</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('settings')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              activeView === 'settings'
+                ? 'text-amber-600 dark:text-amber-400 font-black'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
+            }`}
+          >
+            <div className={`p-1 rounded-lg ${activeView === 'settings' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : ''}`}>
+              <Building2 className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] tracking-tight mt-0.5">Profil</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveView('landing')}
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition ${
+              activeView === 'landing'
+                ? 'text-amber-600 dark:text-amber-400 font-black'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 font-semibold'
+            }`}
+          >
+            <div className={`p-1 rounded-lg ${activeView === 'landing' ? 'bg-amber-500/20 text-amber-600 dark:text-amber-400' : ''}`}>
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] tracking-tight mt-0.5">Offre</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }

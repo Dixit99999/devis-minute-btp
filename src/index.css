@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
 @layer base {
+  html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+  
   * {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   }
@@ -79,8 +84,8 @@
 }
 
 /* Cartes et conteneurs sombres adaptés au mode clair */
-.theme-light .bg-slate-900:not(button):not(.fixed.bottom-4.right-4),
-.theme-light .bg-slate-950:not(button) {
+.theme-light .bg-slate-900:not(.fixed.bottom-4.right-4):not(button.bg-amber-500):not(button.bg-emerald-600),
+.theme-light .bg-slate-950:not(button.bg-amber-500):not(button.bg-emerald-600) {
   background-color: #ffffff !important;
   border-color: #cbd5e1 !important;
 }
@@ -89,14 +94,44 @@
 .theme-light .bg-slate-900\/60,
 .theme-light .bg-slate-900\/70,
 .theme-light .bg-slate-900\/80,
+.theme-light .bg-slate-900\/90,
+.theme-light .bg-slate-900\/95,
 .theme-light .bg-slate-950\/50,
 .theme-light .bg-slate-950\/70 {
   background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
 }
 
-.theme-light .bg-slate-800:not(button) {
+.theme-light .bg-slate-800 {
   background-color: #f1f5f9 !important;
   border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+}
+
+.theme-light button.bg-slate-800,
+.theme-light button.bg-slate-900 {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #1e293b !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.theme-light button.bg-slate-800:hover,
+.theme-light button.bg-slate-900:hover {
+  background-color: #f8fafc !important;
+  border-color: #f59e0b !important;
+  color: #0f172a !important;
+}
+
+/* Barre flottante d'action du bas en mode clair */
+.theme-light .fixed.bottom-0 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 -4px 20px -2px rgba(15, 23, 42, 0.08) !important;
+}
+
+.theme-light .fixed.bottom-0 span.text-slate-400 {
+  color: #64748b !important;
 }
 
 .theme-light .border-slate-800,

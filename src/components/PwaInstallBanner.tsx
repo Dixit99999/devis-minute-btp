@@ -74,17 +74,17 @@ export const PwaInstallBanner: React.FC = () => {
 
   return (
     <>
-      <div className="bg-gradient-to-r from-amber-500/20 via-slate-900 to-amber-500/10 border-b border-amber-500/30 px-4 py-2.5 flex items-center justify-between gap-3 text-xs animate-in slide-in-from-top duration-300">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 text-amber-400">
-            <Smartphone className="w-4 h-4" />
+      <div className="bg-amber-50 dark:bg-slate-900 border-b border-amber-200 dark:border-amber-500/30 px-3 sm:px-4 py-2 flex items-center justify-between gap-2.5 text-xs animate-in slide-in-from-top duration-300">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0 text-amber-600 dark:text-amber-400">
+            <Smartphone className="w-3.5 h-3.5" />
           </div>
           <div className="truncate">
-            <p className="font-bold text-white text-xs truncate">
-              Installez <span className="text-amber-400">Devis Minute BTP</span> sur votre écran
+            <p className="font-bold text-slate-900 dark:text-white text-xs truncate">
+              Installer <span className="text-amber-600 dark:text-amber-400">Devis Minute</span> sur l'écran d'accueil
             </p>
-            <p className="text-[11px] text-slate-400 hidden sm:block">
-              Accès immédiat 1-clic sur chantier & fonctionnement hors-ligne
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 hidden sm:block">
+              Accès 1-clic sur chantier & fonctionnement 100% hors-ligne
             </p>
           </div>
         </div>
