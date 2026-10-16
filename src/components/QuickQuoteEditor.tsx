@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type {
   Quote,
   QuoteItem,
@@ -10,7 +10,7 @@ import type {
 } from '../types';
 import { PRESET_CATALOG } from '../data/presets';
 import { calculateTotals, formatEuro, groupItemsByRoom } from '../utils/calculator';
-import { parseVoiceInputAdvanced } from '../utils/voiceParser';
+import { parseContinuousVoiceSpeech } from '../utils/voiceParser';
 import { MicrophonePermissionModal } from './MicrophonePermissionModal';
 import { PhotoUploadSection } from './PhotoUploadSection';
 import { CatalogItemModal } from './CatalogItemModal';
@@ -18,6 +18,7 @@ import { ShareModal } from './ShareModal';
 import {
   Mic,
   MicOff,
+  Check,
   Plus,
   Minus,
   Trash2,
@@ -76,10 +77,26 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'editor' | 'catalog'>('editor');
   const [selectedTrade, setSelectedTrade] = useState<string>('all');
-  const [isListening, setIsListening] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [accumulatedTranscript, setAccumulatedTranscript] = useState('');
+  const [liveInterim, setLiveInterim] = useState('');
   const [voiceHint, setVoiceHint] = useState<string | null>(null);
   const [showMicPermissionModal, setShowMicPermissionModal] = useState(false);
   const [showMargin, setShowMargin] = useState(false);
+
+  const recognitionRef = useRef<any>(null);
+  const isRecordingRef = useRef(false);
+  const fullTranscriptRef = useRef('');
+
+  // Nettoyage de l'instance SpeechRecognition en cas de démontage
+  useEffect(() => {
+    return () => {
+      isRecordingRef.current = false;
+      try {
+        recognitionRef.current?.stop();
+      } catch (e) {}
+    };
+  }, []);
 
   // Catalogue personnalisable avec persistance locale
   const STORAGE_KEY_CATALOG = 'devis_minute_custom_catalog';
@@ -261,8 +278,9 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
     updateCalculation(newItems);
   };
 
-  // Reconnaissance vocale Web Speech API avec analyse sémantique avancée
-  const startSpeechRecognition = () => {
+  // Reconnaissance vocale Web Speech API en mode continu (Bouton ON / OFF)
+  // L'artisan enclenche (ON), parle librement tout son devis, puis coupe (OFF) pour dispatcher
+  const toggleContinuousDictation = () => {
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -271,111 +289,157 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
       return;
     }
 
-    if (isListening) {
-      setIsListening(false);
+    // SI DÉJÀ ENREGISTREMENT EN COURS : CLIC "OFF" -> ARRÊT ET DISPATCH
+    if (isRecordingRef.current) {
+      isRecordingRef.current = false;
+      setIsRecording(false);
+
+      try {
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+        }
+      } catch (e) {
+        console.warn("Erreur stop recognition:", e);
+      }
+
+      // Concaténation de tout ce qui a été dit
+      const completeSpokenText = (fullTranscriptRef.current + ' ' + liveInterim).trim();
+
+      if (!completeSpokenText) {
+        setVoiceHint("ℹ️ Aucune parole n'a été détectée. Réessayez en parlant distinctement.");
+        setLiveInterim('');
+        return;
+      }
+
+      // Analyse globale multi-intentions (prestations, pièces, remises, acompte, client)
+      const dispatch = parseContinuousVoiceSpeech(completeSpokenText);
+
+      // 1. Ajout de toutes les lignes reconnues
+      let nextItems = [...quote.items];
+      if (dispatch.items.length > 0) {
+        const newQuoteItems: QuoteItem[] = dispatch.items.map((item, idx) => {
+          const qty = item.quantity && item.quantity > 0 ? item.quantity : 1;
+          const unitPrice = item.unitPriceHT && item.unitPriceHT > 0 ? item.unitPriceHT : (artisan.defaultHourlyRate || 60);
+          return {
+            id: 'voice-' + Date.now() + '-' + idx,
+            designation: item.designation || 'Prestation chantier',
+            category: item.category || 'forfait',
+            quantity: qty,
+            unit: (item.unit as any) || 'forfait',
+            unitPriceHT: unitPrice,
+            costPriceHT: unitPrice * 0.4,
+            vatRate: (item.vatRate as VatRate) || 10,
+            room: item.room,
+            totalHT: qty * unitPrice,
+          };
+        });
+        nextItems = [...nextItems, ...newQuoteItems];
+      }
+
+      // 2. Gestion de la Remise si dictée
+      const nextDiscountType = dispatch.discount ? dispatch.discount.discountType : quote.discountType;
+      const nextDiscountVal = dispatch.discount ? dispatch.discount.value : quote.discountValue;
+
+      // 3. Gestion de l'Acompte si dicté
+      const nextDeposit = dispatch.depositPercent !== undefined ? dispatch.depositPercent : quote.depositPercent;
+
+      // 4. Gestion du Client si dicté
+      let nextClient = { ...quote.client };
+      if (dispatch.client?.name) nextClient.name = dispatch.client.name;
+      if (dispatch.client?.address) nextClient.address = dispatch.client.address;
+
+      // Application immédiate
+      onUpdateQuote({
+        ...quote,
+        client: nextClient,
+      });
+      updateCalculation(nextItems, nextDeposit, nextDiscountType, nextDiscountVal, quote.photos);
+
+      if (dispatch.items.length > 0 || dispatch.discount || dispatch.depositPercent !== undefined) {
+        confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } });
+      }
+
+      setVoiceHint(dispatch.summary);
+      setLiveInterim('');
+      setAccumulatedTranscript('');
+      fullTranscriptRef.current = '';
       return;
     }
 
+    // SI MICRO ARRÊTÉ : CLIC "ON" -> DÉMARRAGE DE L'ÉCOUTE CONTINUE
     try {
       const recognition = new SpeechRecognition();
       recognition.lang = 'fr-FR';
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+
+      fullTranscriptRef.current = '';
+      setAccumulatedTranscript('');
+      setLiveInterim('');
+      setVoiceHint("🔴 Dictée active : parlez librement. Cliquez sur 'Arrêter la dictée' quand vous avez fini.");
 
       recognition.onstart = () => {
-        setIsListening(true);
-        setVoiceHint("🎤 Parlez : ex 'Pose de 2 unités de chauffage 450€' ou 'Remise de 5%'");
+        isRecordingRef.current = true;
+        setIsRecording(true);
       };
 
       recognition.onresult = (event: any) => {
-        const transcript = event.results[0][0].transcript;
-        const parsedIntent = parseVoiceInputAdvanced(transcript);
-
-        if (!parsedIntent) {
-          setVoiceHint("⚠️ Phrase non reconnue. Réessayez clairement.");
-          return;
+        let currentInterim = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          const trans = event.results[i][0]?.transcript || '';
+          if (event.results[i].isFinal) {
+            fullTranscriptRef.current += (fullTranscriptRef.current ? ' ' : '') + trans.trim();
+            setAccumulatedTranscript(fullTranscriptRef.current);
+          } else {
+            currentInterim += trans;
+          }
         }
-
-        // 1. Gestion Intention Remise Commerciale
-        if (parsedIntent.type === 'discount') {
-          updateCalculation(
-            quote.items,
-            quote.depositPercent,
-            parsedIntent.discountType,
-            parsedIntent.value,
-            quote.photos
-          );
-          confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
-          setVoiceHint(`🎉 Remise de ${parsedIntent.value}${parsedIntent.discountType === 'percent' ? '%' : '€'} appliquée au devis !`);
-          return;
-        }
-
-        // 2. Gestion Intention Acompte
-        if (parsedIntent.type === 'deposit') {
-          updateCalculation(
-            quote.items,
-            parsedIntent.percent,
-            quote.discountType,
-            quote.discountValue,
-            quote.photos
-          );
-          setVoiceHint(`💰 Acompte configuré à ${parsedIntent.percent}%`);
-          return;
-        }
-
-        // 3. Gestion Intention Client
-        if (parsedIntent.type === 'client') {
-          onUpdateQuote({
-            ...quote,
-            client: {
-              ...quote.client,
-              name: parsedIntent.name || quote.client.name,
-              address: parsedIntent.address || quote.client.address,
-            },
-          });
-          setVoiceHint(`👤 Client mis à jour : ${parsedIntent.name || 'Coordonnées'}`);
-          return;
-        }
-
-        // 4. Gestion Intention Ligne de Prestation / Fourniture
-        if (parsedIntent.type === 'item') {
-          const itemData = parsedIntent.item;
-          const newItem: QuoteItem = {
-            id: 'voice-' + Date.now(),
-            designation: itemData.designation || transcript,
-            category: itemData.category || 'forfait',
-            quantity: itemData.quantity || 1,
-            unit: (itemData.unit as any) || 'forfait',
-            unitPriceHT: itemData.unitPriceHT || 100,
-            costPriceHT: (itemData.unitPriceHT || 100) * 0.4,
-            vatRate: (itemData.vatRate as VatRate) || 10,
-            totalHT: (itemData.quantity || 1) * (itemData.unitPriceHT || 100),
-          };
-          updateCalculation([...quote.items, newItem]);
-          setVoiceHint(`✅ Ajouté : "${newItem.designation}" (${newItem.quantity} ${newItem.unit} à ${formatEuro(newItem.unitPriceHT)} HT)`);
-        }
+        setLiveInterim(currentInterim);
       };
 
       recognition.onerror = (err: any) => {
-        console.warn("Erreur captation vocale:", err);
-        setIsListening(false);
+        console.warn("Erreur captation vocale continue:", err);
         if (err.error === 'not-allowed' || err.error === 'service-not-allowed') {
+          isRecordingRef.current = false;
+          setIsRecording(false);
           setShowMicPermissionModal(true);
-        } else {
-          setVoiceHint("Erreur micro : vérifiez que le micro est autorisé.");
         }
       };
 
       recognition.onend = () => {
-        setIsListening(false);
+        // Si l'utilisateur n'a pas appuyé sur OFF, redémarrage automatique en cas de pause
+        if (isRecordingRef.current) {
+          try {
+            recognition.start();
+          } catch (e) {
+            // Déjà actif
+          }
+        }
       };
 
+      recognitionRef.current = recognition;
       recognition.start();
+      isRecordingRef.current = true;
+      setIsRecording(true);
     } catch (e) {
       console.error(e);
-      setIsListening(false);
+      isRecordingRef.current = false;
+      setIsRecording(false);
       setShowMicPermissionModal(true);
     }
+  };
+
+  const cancelDictation = () => {
+    isRecordingRef.current = false;
+    setIsRecording(false);
+    try {
+      recognitionRef.current?.stop();
+    } catch (e) {}
+    setLiveInterim('');
+    setAccumulatedTranscript('');
+    fullTranscriptRef.current = '';
+    setVoiceHint("Dictée annulée.");
   };
 
   const tradeFilters = [
@@ -402,19 +466,19 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-black text-white">
-                Devis <span className="text-amber-400 font-mono">{quote.number}</span>
+              <h2 className="text-base font-black text-slate-900 dark:text-white">
+                Devis <span className="text-amber-500 dark:text-amber-400 font-mono">{quote.number}</span>
               </h2>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                 quote.status === 'signe'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                  : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                  ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
+                  : 'bg-amber-500/20 text-amber-700 dark:text-amber-400 border border-amber-500/30'
               }`}>
                 {quote.status === 'signe' ? 'Signé' : 'Brouillon'}
               </span>
             </div>
             <div className="flex flex-wrap items-center gap-2 mt-0.5">
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{artisan.companyName}</span>
+              <span className="text-[11px] text-slate-600 dark:text-slate-400 font-medium">{artisan.companyName}</span>
               <span className="text-slate-400 dark:text-slate-600">•</span>
               {onOpenSettings ? (
                 <>
@@ -422,7 +486,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
                     type="button"
                     onClick={onOpenSettings}
                     title="Modifier votre taux horaire dans les réglages"
-                    className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-bold flex items-center gap-1 transition"
+                    className="text-[11px] text-amber-700 dark:text-amber-400 hover:underline font-bold flex items-center gap-1 transition"
                   >
                     <Clock className="w-3 h-3 text-amber-500" />
                     Taux : {artisan.defaultHourlyRate || 60}€/h
@@ -432,7 +496,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
                     type="button"
                     onClick={onOpenSettings}
                     title="Modifier vos frais de déplacement dans les réglages"
-                    className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline font-bold flex items-center gap-1 transition"
+                    className="text-[11px] text-sky-700 dark:text-sky-400 hover:underline font-bold flex items-center gap-1 transition"
                   >
                     <Car className="w-3 h-3 text-sky-500" />
                     Dépl : {artisan.defaultTravelFee ?? 50}€
@@ -440,29 +504,94 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
                 </>
               ) : (
                 <>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Taux : {artisan.defaultHourlyRate || 60}€/h</span>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400">Taux : {artisan.defaultHourlyRate || 60}€/h</span>
                   <span className="text-slate-400 dark:text-slate-600">•</span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Dépl : {artisan.defaultTravelFee ?? 50}€</span>
+                  <span className="text-[11px] text-slate-600 dark:text-slate-400">Dépl : {artisan.defaultTravelFee ?? 50}€</span>
                 </>
               )}
             </div>
           </div>
         </div>
 
-        {/* Bouton Dictée Vocale Express */}
+        {/* Bouton ON / OFF Dictée Vocale Continue Express */}
         <button
           type="button"
-          onClick={startSpeechRecognition}
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs transition shadow-lg ${
-            isListening
-              ? 'bg-rose-600 text-white animate-pulse'
+          onClick={toggleContinuousDictation}
+          className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl font-black text-xs transition shadow-md ${
+            isRecording
+              ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse ring-2 ring-rose-400/80 shadow-rose-600/30'
               : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 glow-amber'
           }`}
+          title={isRecording ? "Arrêter l'enregistrement et dispatcher tout le devis" : "Activer la dictée vocale continue"}
         >
-          {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-          {isListening ? "Écoute..." : "Dictée vocale (IA)"}
+          {isRecording ? (
+            <>
+              <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
+              <MicOff className="w-4 h-4" />
+              <span>Arrêter la dictée (OFF)</span>
+            </>
+          ) : (
+            <>
+              <Mic className="w-4 h-4" />
+              <span>Dictée vocale continue</span>
+              <span className="text-[10px] bg-slate-950/20 px-1.5 py-0.5 rounded font-black uppercase">ON</span>
+            </>
+          )}
         </button>
       </div>
+
+      {/* Panneau de Dictée Vocale Continue en Temps Réel */}
+      {isRecording && (
+        <div className="p-4 bg-gradient-to-r from-rose-500/10 via-amber-500/10 to-rose-500/10 border-2 border-rose-500/40 rounded-2xl space-y-3 shadow-lg animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+              </span>
+              <span className="text-xs font-black text-rose-700 dark:text-rose-300 uppercase tracking-wider">
+                Micro Ouvert • En écoute continue...
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={cancelDictation}
+              className="text-[11px] font-bold text-slate-600 hover:text-rose-600 dark:text-slate-400 dark:hover:text-white px-2 py-1 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800 transition"
+            >
+              Annuler
+            </button>
+          </div>
+
+          {/* Affichage des paroles en direct */}
+          <div className="min-h-16 max-h-36 overflow-y-auto p-3 bg-white dark:bg-slate-950 rounded-xl border border-rose-200 dark:border-rose-900/40 text-slate-900 dark:text-white text-xs leading-relaxed font-medium custom-scrollbar">
+            {(accumulatedTranscript + ' ' + liveInterim).trim() ? (
+              <span>
+                <strong>{accumulatedTranscript}</strong>
+                <span className="text-amber-600 dark:text-amber-400 font-bold italic ml-1">{liveInterim}</span>
+              </span>
+            ) : (
+              <span className="italic text-slate-400">
+                🎙️ Parlez naturellement : dictez vos pièces, prestations, quantités, forfaits, remise ou acompte...
+              </span>
+            )}
+          </div>
+
+          {/* Conseils & Bouton Terminer (OFF) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+            <p className="text-[11px] text-slate-600 dark:text-slate-400">
+              💡 <em>Exemple : "Cuisine pose mitigeur 150€, salle de bain 2h de main d'oeuvre, déplacement 50€, remise 5%"</em>
+            </p>
+            <button
+              type="button"
+              onClick={toggleContinuousDictation}
+              className="px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-md transition hover:scale-[1.02]"
+            >
+              <Check className="w-4 h-4" />
+              <span>Valider & Remplir le Devis (OFF)</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bannière Facturation de Solde Rapide */}
       {quote.docType === 'facture_solde' ? (
@@ -511,10 +640,19 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
         </div>
       ) : null}
 
-      {voiceHint && (
-        <div className="px-3.5 py-2 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center gap-2 animate-in fade-in">
-          <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>{voiceHint}</span>
+      {voiceHint && !isRecording && (
+        <div className="px-3.5 py-2.5 bg-amber-500/15 border border-amber-500/40 rounded-xl text-xs text-amber-900 dark:text-amber-200 font-medium flex items-center justify-between gap-2 animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <span>{voiceHint}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setVoiceHint(null)}
+            className="text-amber-800 dark:text-amber-400 hover:text-amber-950 dark:hover:text-white text-xs font-bold px-1.5"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -553,47 +691,47 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
 
       {/* Bloc Coordonnées Client & Adresse Chantier */}
       <div className="glass-card p-4 rounded-2xl space-y-3">
-        <h3 className="text-xs font-bold text-slate-200 flex items-center gap-2 uppercase tracking-wider">
-          <User className="w-4 h-4 text-amber-400" />
+        <h3 className="text-xs font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 uppercase tracking-wider">
+          <User className="w-4 h-4 text-amber-500" />
           Client & Facturation
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
           <div>
-            <label className="text-[10px] font-medium text-slate-400 block mb-1">Nom / Société du client</label>
+            <label className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">Nom / Société du client</label>
             <input
               type="text"
               placeholder="Ex: M. Dupont Jean"
               value={quote.client.name}
               onChange={(e) => handleClientChange('name', e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 outline-none transition"
+              className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none transition shadow-xs"
             />
           </div>
 
           <div>
-            <label className="text-[10px] font-medium text-slate-400 block mb-1">Téléphone mobile (SMS)</label>
+            <label className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">Téléphone mobile (SMS)</label>
             <div className="relative">
-              <Phone className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+              <Phone className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <input
                 type="tel"
                 placeholder="06 12 34 56 78"
                 value={quote.client.phone}
                 onChange={(e) => handleClientChange('phone', e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-400 outline-none transition font-mono"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none transition font-mono shadow-xs"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-[10px] font-medium text-slate-400 block mb-1">Adresse (client / facturation)</label>
+            <label className="text-[10px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">Adresse (client / facturation)</label>
             <div className="relative">
-              <MapPin className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-500" />
+              <MapPin className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
               <input
                 type="text"
                 placeholder="12 rue de la Paix, 75002 Paris"
                 value={quote.client.address}
                 onChange={(e) => handleClientChange('address', e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-amber-400 outline-none transition"
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none transition shadow-xs"
               />
             </div>
           </div>
@@ -617,43 +755,43 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
 
           {/* Champs conditionnels pour l'adresse de chantier spécifique */}
           {quote.client.isSiteAddressDifferent && (
-            <div className="mt-3 p-3.5 bg-slate-900/90 border border-amber-500/20 rounded-xl space-y-2.5 animate-in fade-in">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+            <div className="mt-3 p-3.5 bg-amber-50/70 dark:bg-slate-900/90 border border-amber-300 dark:border-amber-500/20 rounded-xl space-y-2.5 animate-in fade-in">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400">
                 <Building className="w-3.5 h-3.5" />
                 <span>Lieu d'exécution des travaux (Chantier)</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 <div className="sm:col-span-2">
-                  <label className="text-[10px] text-slate-400 block mb-0.5">Adresse du chantier</label>
+                  <label className="text-[10px] font-semibold text-slate-700 dark:text-slate-400 block mb-0.5">Adresse du chantier</label>
                   <input
                     type="text"
                     placeholder="Ex: 45 boulevard Haussmann"
                     value={quote.client.siteAddress || ''}
                     onChange={(e) => handleClientChange('siteAddress', e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-amber-400 outline-none"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-slate-400 block mb-0.5">Ville & Code Postal</label>
+                  <label className="text-[10px] font-semibold text-slate-700 dark:text-slate-400 block mb-0.5">Ville & Code Postal</label>
                   <input
                     type="text"
                     placeholder="75009 Paris"
                     value={quote.client.siteCity || ''}
                     onChange={(e) => handleClientChange('siteCity', e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-amber-400 outline-none"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
 
                 <div className="sm:col-span-3">
-                  <label className="text-[10px] text-slate-400 block mb-0.5">Accès / Digicode / Étage (Optionnel)</label>
+                  <label className="text-[10px] font-semibold text-slate-700 dark:text-slate-400 block mb-0.5">Accès / Digicode / Étage (Optionnel)</label>
                   <input
                     type="text"
                     placeholder="Ex: Bât B, 3ème étage gauche, code 4812"
                     value={quote.client.siteAccessNotes || ''}
                     onChange={(e) => handleClientChange('siteAccessNotes', e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:border-amber-400 outline-none"
+                    className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none shadow-xs"
                   />
                 </div>
               </div>
@@ -669,14 +807,14 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
       />
 
       {/* Onglets Saisie / Catalogue rapide */}
-      <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+      <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
         <div className="flex items-center gap-2">
           <button
             onClick={() => setActiveTab('editor')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
               activeTab === 'editor'
                 ? 'bg-amber-500 text-slate-950 shadow-md glow-amber'
-                : 'bg-slate-800 text-slate-400 hover:text-white'
+                : 'bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300'
             }`}
           >
             Lignes ({quote.items.length})
@@ -686,7 +824,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
               activeTab === 'catalog'
                 ? 'bg-amber-500 text-slate-950 shadow-md glow-amber'
-                : 'bg-slate-800 text-slate-400 hover:text-white'
+                : 'bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300'
             }`}
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -1144,7 +1282,7 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
         isOpen={showMicPermissionModal}
         onClose={() => setShowMicPermissionModal(false)}
         onPermissionGranted={() => {
-          setTimeout(() => startSpeechRecognition(), 300);
+          setTimeout(() => toggleContinuousDictation(), 300);
         }}
       />
 

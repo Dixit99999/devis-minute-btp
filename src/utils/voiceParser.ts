@@ -207,3 +207,102 @@ export function parseVoiceInputAdvanced(rawText: string): VoiceIntent | null {
     },
   };
 }
+
+// =========================================================================
+// 5. PARSER DE FLUX CONTINU MULTI-PRESTATIONS (DICTÉE COMPLÈTE ON/OFF)
+// Permet à l'artisan de dicter tout son chantier en une seule prise.
+// =========================================================================
+export interface MultiVoiceDispatchResult {
+  items: Array<Partial<QuoteItem>>;
+  discount?: { discountType: 'percent' | 'fixed'; value: number };
+  depositPercent?: number;
+  client?: { name?: string; address?: string; phone?: string };
+  summary: string;
+}
+
+export function parseContinuousVoiceSpeech(fullText: string): MultiVoiceDispatchResult {
+  const result: MultiVoiceDispatchResult = {
+    items: [],
+    summary: '',
+  };
+
+  if (!fullText || !fullText.trim()) {
+    result.summary = "Aucune parole détectée.";
+    return result;
+  }
+
+  // 1. Découpage du flux continu en segments (ponctuation et mots de liaison naturels)
+  // Remplace les connecteurs par des balises de coupure
+  let processed = fullText
+    .replace(/([.!?;\n]+)/g, ' | ')
+    .replace(/\s+(?:ensuite|puis|apr[èe]s|et\s+aussi|de\s+plus|ajoute\s+[ée]galement|ajouter|ajoute)\s+/gi, ' | ')
+    .replace(/\s+(dans\s+(?:la|le|les)?\s*(?:cuisine|salle\s+de\s+bains?|sdb|salon|chambre|wc|toilettes|ext[ée]rieur|terrasse|garage|cave|toiture|combles))/gi, ' | $1');
+
+  const segments = processed
+    .split('|')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 2);
+
+  let currentRoom: string | undefined = undefined;
+
+  for (const seg of segments) {
+    const intent = parseVoiceInputAdvanced(seg);
+    if (!intent) continue;
+
+    if (intent.type === 'discount') {
+      result.discount = {
+        discountType: intent.discountType,
+        value: intent.value,
+      };
+    } else if (intent.type === 'deposit') {
+      result.depositPercent = intent.percent;
+    } else if (intent.type === 'client') {
+      result.client = {
+        name: intent.name,
+        address: intent.address,
+      };
+    } else if (intent.type === 'item') {
+      const item = { ...intent.item };
+      // Mémorisation de la zone de chantier active
+      if (item.room) {
+        currentRoom = item.room;
+      } else if (currentRoom) {
+        item.room = currentRoom;
+      }
+      result.items.push(item);
+    }
+  }
+
+  // Si le découpage n'a rien donné mais qu'on a du texte global, on tente un parse direct
+  if (result.items.length === 0 && !result.discount && !result.depositPercent && !result.client) {
+    const singleIntent = parseVoiceInputAdvanced(fullText);
+    if (singleIntent) {
+      if (singleIntent.type === 'item') result.items.push(singleIntent.item);
+      if (singleIntent.type === 'discount') result.discount = { discountType: singleIntent.discountType, value: singleIntent.value };
+      if (singleIntent.type === 'deposit') result.depositPercent = singleIntent.percent;
+      if (singleIntent.type === 'client') result.client = { name: singleIntent.name, address: singleIntent.address };
+    }
+  }
+
+  // Synthèse humaine
+  const parts: string[] = [];
+  if (result.items.length > 0) {
+    parts.push(`${result.items.length} prestation${result.items.length > 1 ? 's' : ''} ajoutée${result.items.length > 1 ? 's' : ''}`);
+  }
+  if (result.discount) {
+    parts.push(`remise de ${result.discount.value}${result.discount.discountType === 'percent' ? '%' : '€'}`);
+  }
+  if (result.depositPercent !== undefined) {
+    parts.push(`acompte à ${result.depositPercent}%`);
+  }
+  if (result.client?.name) {
+    parts.push(`client ${result.client.name}`);
+  }
+
+  result.summary = parts.length > 0
+    ? `✨ Traité avec succès : ${parts.join(', ')}.`
+    : "⚠️ Analyse terminée, aucune ligne de devis reconnue.";
+
+  return result;
+}
+
