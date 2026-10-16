@@ -54,6 +54,7 @@ export interface ArtisanProfile {
   ribIban: string;
   ribBic: string;
   defaultHourlyRate: number; // Taux horaire par défaut
+  defaultTravelFee?: number; // Forfait déplacement par défaut
   isOnboarded?: boolean;
   logoUrl?: string;
   // Notifications & Webhooks

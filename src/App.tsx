@@ -73,6 +73,7 @@ export function App() {
     return {
       ...INITIAL_ARTISAN_PROFILE,
       defaultHourlyRate: 60,
+      defaultTravelFee: 50,
       isOnboarded: true,
       sendSmsOnSign: true,
       sendEmailOnSign: true,

@@ -18,6 +18,7 @@ export const INITIAL_ARTISAN_PROFILE: ArtisanProfile = {
   ribIban: "FR76 3000 4000 0100 2345 6789 012",
   ribBic: "BNPAFRPPXXX",
   defaultHourlyRate: 60,
+  defaultTravelFee: 50,
   isOnboarded: true,
 };
 

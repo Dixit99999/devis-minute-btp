@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ArtisanProfile } from '../types';
-import { Shield, Building2, Phone, Check, Save, CreditCard, Clock, Euro } from 'lucide-react';
+import { Shield, Building2, Phone, Check, Save, CreditCard, Clock, Euro, Car } from 'lucide-react';
 
 interface ArtisanSettingsProps {
   profile: ArtisanProfile;
@@ -23,42 +23,44 @@ export const ArtisanSettings: React.FC<ArtisanSettingsProps> = ({ profile, onSav
   };
 
   const hourlyRatePresets = [45, 50, 55, 60, 65, 70, 75, 85];
+  const travelFeePresets = [30, 40, 50, 60, 70, 80];
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20 animate-in fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-white">Paramètres & Coordonnées Artisan</h2>
-          <p className="text-xs text-slate-400">Ces informations figurent obligatoirement sur vos devis et factures</p>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white">Paramètres & Coordonnées Artisan</h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Ces informations figurent obligatoirement sur vos devis et factures</p>
         </div>
         {saved && (
-          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold flex items-center gap-1.5 animate-in fade-in">
+          <span className="px-3 py-1 bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold flex items-center gap-1.5 animate-in fade-in">
             <Check className="w-4 h-4" /> Enregistré !
           </span>
         )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Section Tarification & Taux horaire */}
-        <div className="glass-card p-5 rounded-2xl space-y-4 border-amber-500/30 bg-gradient-to-br from-slate-900/90 to-amber-950/20 shadow-lg">
+        {/* Section Tarification : Taux horaire & Forfait Déplacement */}
+        <div className="glass-card p-5 rounded-2xl space-y-5 border-amber-500/30 shadow-md">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-amber-300 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-400" />
-              Tarification & Taux horaire de Main-d'œuvre
+            <h3 className="text-sm font-bold text-amber-600 dark:text-amber-300 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-500" />
+              Tarification & Frais de Main-d'œuvre & Déplacement
             </h3>
-            <span className="text-[10px] bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold">
+            <span className="text-[10px] bg-amber-500/10 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30 font-semibold">
               Référence Dictée & Devis
             </span>
           </div>
 
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Définissez votre tarif horaire de base. Il sera automatiquement appliqué lors de la dictée vocale IA, des boutons d'ajout rapide (<span className="text-amber-400 font-bold">+1h</span>, <span className="text-amber-400 font-bold">+2h</span>) et pour vos chiffrages de pose.
+          <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+            Définissez vos tarifs de référence. Ils seront appliqués lors de la dictée vocale IA et des boutons d'ajout rapide (<span className="text-amber-600 dark:text-amber-400 font-bold">+1h</span>, <span className="text-amber-600 dark:text-amber-400 font-bold">+Déplacement</span>).
           </p>
 
-          <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-3">
+          {/* 1. Taux Horaire */}
+          <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <label className="text-xs font-bold text-white flex items-center gap-1.5">
-                <Euro className="w-4 h-4 text-amber-400" />
+              <label className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                <Euro className="w-4 h-4 text-amber-500" />
                 Taux horaire par défaut (€ HT / heure) :
               </label>
               <div className="flex items-center gap-2">
@@ -69,16 +71,16 @@ export const ArtisanSettings: React.FC<ArtisanSettingsProps> = ({ profile, onSav
                   step="1"
                   value={formData.defaultHourlyRate || 60}
                   onChange={(e) => handleChange('defaultHourlyRate', Number(e.target.value) || 0)}
-                  className="w-28 bg-slate-900 border-2 border-amber-500/60 rounded-xl px-3 py-2 text-base font-black text-amber-400 text-center font-mono focus:border-amber-400 outline-none shadow-inner"
+                  className="w-28 bg-white dark:bg-slate-900 border-2 border-amber-500/60 rounded-xl px-3 py-2 text-base font-black text-amber-600 dark:text-amber-400 text-center font-mono focus:border-amber-400 outline-none shadow-sm"
                   required
                 />
-                <span className="text-xs font-bold text-slate-400">€ HT / h</span>
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">€ HT / h</span>
               </div>
             </div>
 
             {/* Presets rapides de taux horaire */}
-            <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] text-slate-400 font-medium">Sélection rapide :</span>
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Sélection rapide :</span>
               {hourlyRatePresets.map((rate) => (
                 <button
                   key={rate}
@@ -86,11 +88,53 @@ export const ArtisanSettings: React.FC<ArtisanSettingsProps> = ({ profile, onSav
                   onClick={() => handleChange('defaultHourlyRate', rate)}
                   className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                     formData.defaultHourlyRate === rate
-                      ? 'bg-amber-500 text-slate-950 shadow-md glow-amber'
-                      : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                      : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:border-slate-700 shadow-sm'
                   }`}
                 >
                   {rate} €/h
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 2. Forfait Déplacement */}
+          <div className="bg-slate-50 dark:bg-slate-950/60 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <label className="text-xs font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+                <Car className="w-4 h-4 text-sky-500" />
+                Forfait déplacement par défaut (€ HT) :
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="300"
+                  step="1"
+                  value={formData.defaultTravelFee ?? 50}
+                  onChange={(e) => handleChange('defaultTravelFee', Number(e.target.value) || 0)}
+                  className="w-28 bg-white dark:bg-slate-900 border-2 border-sky-500/60 rounded-xl px-3 py-2 text-base font-black text-sky-600 dark:text-sky-400 text-center font-mono focus:border-sky-400 outline-none shadow-sm"
+                  required
+                />
+                <span className="text-xs font-bold text-slate-500 dark:text-slate-400">€ HT</span>
+              </div>
+            </div>
+
+            {/* Presets rapides de déplacement */}
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex flex-wrap items-center gap-2">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Sélection rapide :</span>
+              {travelFeePresets.map((fee) => (
+                <button
+                  key={fee}
+                  type="button"
+                  onClick={() => handleChange('defaultTravelFee', fee)}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                    (formData.defaultTravelFee ?? 50) === fee
+                      ? 'bg-sky-500 text-slate-950 shadow-md font-black'
+                      : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:border-slate-700 shadow-sm'
+                  }`}
+                >
+                  {fee} €
                 </button>
               ))}
             </div>

@@ -55,24 +55,25 @@ export const CatalogItemModal: React.FC<CatalogItemModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 dark:bg-slate-950/90 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-4 bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-amber-500/20 text-amber-400 rounded-xl">
+        <div className="p-4 bg-slate-100/90 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-amber-500/20 text-amber-600 dark:text-amber-400 rounded-xl">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-white text-sm">
+              <h3 className="font-bold text-slate-900 dark:text-white text-sm">
                 {isEditing ? 'Modifier la prestation catalogue' : 'Ajouter une prestation au catalogue'}
               </h3>
-              <p className="text-[10px] text-slate-400">Personnalisez vos ouvrages favoris</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400">Personnalisez vos ouvrages favoris</p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition"
+            className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition"
           >
             <X className="w-4 h-4" />
           </button>
@@ -81,7 +82,7 @@ export const CatalogItemModal: React.FC<CatalogItemModalProps> = ({
         {/* Formulaire */}
         <form onSubmit={handleSubmit} className="p-5 space-y-3.5">
           <div>
-            <label className="text-[11px] font-medium text-slate-400 block mb-1">
+            <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
               Désignation de la prestation / fourniture
             </label>
             <input
@@ -89,20 +90,20 @@ export const CatalogItemModal: React.FC<CatalogItemModalProps> = ({
               placeholder="Ex: Remplacement chauffe-eau 250L vertical blindé"
               value={formData.label}
               onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 outline-none"
+              className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none shadow-sm"
               required
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">
+              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Corps de Métier
               </label>
               <select
                 value={formData.trade}
                 onChange={(e) => setFormData({ ...formData, trade: e.target.value as any })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 outline-none"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none shadow-sm"
               >
                 <option value="plomberie">Plomberie & Chauffage</option>
                 <option value="electricite">Électricité</option>
@@ -114,13 +115,13 @@ export const CatalogItemModal: React.FC<CatalogItemModalProps> = ({
             </div>
 
             <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">
+              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Catégorie
               </label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:border-amber-400 outline-none"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none shadow-sm"
               >
                 <option value="fourniture">Fourniture / Matériel</option>
                 <option value="main_d_oeuvre">Main-d'œuvre</option>
@@ -132,7 +133,7 @@ export const CatalogItemModal: React.FC<CatalogItemModalProps> = ({
 
           <div className="grid grid-cols-3 gap-2 items-end">
             <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">
+              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Prix HT par défaut (€)
               </label>
               <input
@@ -140,19 +141,19 @@ export const CatalogItemModal: React.FC<CatalogItemModalProps> = ({
                 step="any"
                 value={formData.defaultPriceHT}
                 onChange={(e) => setFormData({ ...formData, defaultPriceHT: parseFloat(e.target.value) || 0 })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white font-mono text-center font-bold focus:border-amber-400 outline-none"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-2 text-xs text-slate-900 dark:text-white font-mono text-center font-bold focus:border-amber-500 outline-none shadow-sm"
                 required
               />
             </div>
 
             <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">
+              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Unité
               </label>
               <select
                 value={formData.defaultUnit}
                 onChange={(e) => setFormData({ ...formData, defaultUnit: e.target.value as any })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-white focus:border-amber-400 outline-none"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2 py-2 text-xs text-slate-900 dark:text-white focus:border-amber-500 outline-none shadow-sm"
               >
                 <option value="u">Unité (u)</option>
                 <option value="forfait">Forfait</option>
@@ -164,13 +165,13 @@ export const CatalogItemModal: React.FC<CatalogItemModalProps> = ({
             </div>
 
             <div>
-              <label className="text-[11px] font-medium text-slate-400 block mb-1">
+              <label className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 block mb-1">
                 Taux TVA
               </label>
               <select
                 value={formData.defaultVatRate}
                 onChange={(e) => setFormData({ ...formData, defaultVatRate: parseFloat(e.target.value) as VatRate })}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-amber-400 font-bold focus:border-amber-400 outline-none"
+                className="w-full bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2 py-2 text-xs text-amber-600 dark:text-amber-400 font-bold focus:border-amber-500 outline-none shadow-sm"
               >
                 <option value={10}>10% (Rénov)</option>
                 <option value={20}>20% (Neuf)</option>

@@ -213,16 +213,17 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
   };
 
   const handleAddQuickTravel = () => {
+    const travelFee = artisan.defaultTravelFee ?? 50;
     const newItem: QuoteItem = {
       id: 'item-travel-' + Date.now(),
       designation: 'Forfait déplacement & prise en charge chantier',
       category: 'deplacement',
       quantity: 1,
       unit: 'forfait',
-      unitPriceHT: 50,
-      costPriceHT: 15,
+      unitPriceHT: travelFee,
+      costPriceHT: travelFee * 0.3,
       vatRate: 10,
-      totalHT: 50,
+      totalHT: travelFee,
     };
     updateCalculation([...quote.items, newItem]);
   };
@@ -412,21 +413,37 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
                 {quote.status === 'signe' ? 'Signé' : 'Brouillon'}
               </span>
             </div>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-[11px] text-slate-400">{artisan.companyName}</span>
-              <span className="text-slate-600">•</span>
+            <div className="flex flex-wrap items-center gap-2 mt-0.5">
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{artisan.companyName}</span>
+              <span className="text-slate-400 dark:text-slate-600">•</span>
               {onOpenSettings ? (
-                <button
-                  type="button"
-                  onClick={onOpenSettings}
-                  title="Modifier votre taux horaire dans les réglages"
-                  className="text-[11px] text-amber-400 hover:text-amber-300 font-bold underline decoration-dotted decoration-amber-500/50 flex items-center gap-1 transition"
-                >
-                  <Clock className="w-3 h-3 text-amber-400" />
-                  Taux : {artisan.defaultHourlyRate || 60}€/h (modifier)
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={onOpenSettings}
+                    title="Modifier votre taux horaire dans les réglages"
+                    className="text-[11px] text-amber-600 dark:text-amber-400 hover:underline font-bold flex items-center gap-1 transition"
+                  >
+                    <Clock className="w-3 h-3 text-amber-500" />
+                    Taux : {artisan.defaultHourlyRate || 60}€/h
+                  </button>
+                  <span className="text-slate-400 dark:text-slate-600">•</span>
+                  <button
+                    type="button"
+                    onClick={onOpenSettings}
+                    title="Modifier vos frais de déplacement dans les réglages"
+                    className="text-[11px] text-sky-600 dark:text-sky-400 hover:underline font-bold flex items-center gap-1 transition"
+                  >
+                    <Car className="w-3 h-3 text-sky-500" />
+                    Dépl : {artisan.defaultTravelFee ?? 50}€
+                  </button>
+                </>
               ) : (
-                <span className="text-[11px] text-slate-400">Taux réf : {artisan.defaultHourlyRate || 60}€/h</span>
+                <>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Taux : {artisan.defaultHourlyRate || 60}€/h</span>
+                  <span className="text-slate-400 dark:text-slate-600">•</span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">Dépl : {artisan.defaultTravelFee ?? 50}€</span>
+                </>
               )}
             </div>
           </div>
@@ -503,34 +520,34 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
 
       {/* Raccourcis Tactiles "Pouce & Chantier" */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-        <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">Ajout 1-Clic :</span>
+        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase shrink-0">Ajout 1-Clic :</span>
         <button
           type="button"
           onClick={() => handleAddQuickHour(1)}
-          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 shrink-0 transition"
+          className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 shrink-0 transition shadow-sm"
         >
-          <Clock className="w-3 h-3 text-amber-400" /> +1h ({artisan.defaultHourlyRate || 60}€)
+          <Clock className="w-3 h-3 text-amber-500" /> +1h ({artisan.defaultHourlyRate || 60}€)
         </button>
         <button
           type="button"
           onClick={() => handleAddQuickHour(2)}
-          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 shrink-0 transition"
+          className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 shrink-0 transition shadow-sm"
         >
-          <Clock className="w-3 h-3 text-amber-400" /> +2h ({(artisan.defaultHourlyRate || 60) * 2}€)
+          <Clock className="w-3 h-3 text-amber-500" /> +2h ({(artisan.defaultHourlyRate || 60) * 2}€)
         </button>
         <button
           type="button"
           onClick={() => handleAddQuickHour(4)}
-          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 shrink-0 transition"
+          className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 shrink-0 transition shadow-sm"
         >
-          <Clock className="w-3 h-3 text-amber-400" /> +Demi-j (4h)
+          <Clock className="w-3 h-3 text-amber-500" /> +Demi-j (4h)
         </button>
         <button
           type="button"
           onClick={handleAddQuickTravel}
-          className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 shrink-0 transition"
+          className="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold flex items-center gap-1 shrink-0 transition shadow-sm"
         >
-          <Car className="w-3 h-3 text-sky-400" /> +Déplacement (50€)
+          <Car className="w-3 h-3 text-sky-500" /> +Déplacement ({artisan.defaultTravelFee ?? 50}€)
         </button>
       </div>
 
@@ -950,10 +967,10 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
                   <button
                     type="button"
                     onClick={(e) => handleOpenEditCatalogItem(preset, e)}
-                    className="p-2 bg-slate-800/80 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 border border-slate-700 hover:border-amber-500/40 rounded-lg transition"
+                    className="p-2 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300/80 hover:border-amber-400 dark:bg-slate-800 dark:hover:bg-amber-500/20 dark:text-slate-300 dark:hover:text-amber-400 dark:border-slate-700 rounded-lg transition shadow-sm"
                     title="Modifier cette prestation dans le catalogue"
                   >
-                    <Pencil className="w-3.5 h-3.5" />
+                    <Pencil className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                   </button>
                 </div>
               </div>
