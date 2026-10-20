@@ -1,4 +1,4 @@
-const CACHE_NAME = 'devis-minute-v6';
+const CACHE_NAME = 'devis-minute-v7';
 const STATIC_ASSETS = [
   '/',
   '/index.html',

@@ -10,7 +10,7 @@ import type {
 } from '../types';
 import { PRESET_CATALOG } from '../data/presets';
 import { calculateTotals, formatEuro, groupItemsByRoom } from '../utils/calculator';
-import { parseContinuousVoiceSpeech } from '../utils/voiceParser';
+import { parseContinuousVoiceSpeech, mergeOverlappingTranscripts } from '../utils/voiceParser';
 import { MicrophonePermissionModal } from './MicrophonePermissionModal';
 import { PhotoUploadSection } from './PhotoUploadSection';
 import { CatalogItemModal } from './CatalogItemModal';
@@ -302,10 +302,10 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
         console.warn("Erreur stop recognition:", e);
       }
 
-      // Concaténation finale propre de tout ce qui a été dit (sans répétition)
+      // Concaténation finale propre de tout ce qui a été dit (sans répétition ni chevauchement)
       let completeSpokenText = fullTranscriptRef.current.trim();
-      if (liveInterim && liveInterim.trim() && !completeSpokenText.endsWith(liveInterim.trim())) {
-        completeSpokenText = (completeSpokenText + ' ' + liveInterim.trim()).trim();
+      if (liveInterim && liveInterim.trim()) {
+        completeSpokenText = mergeOverlappingTranscripts(completeSpokenText, liveInterim.trim());
       }
 
       if (!completeSpokenText) {
@@ -391,23 +391,23 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
         setIsRecording(true);
       };
 
-      // Reconstruction intégrale à chaque événement pour éviter les dédoublements sur Android Chrome
+      // Reconstruction avec fusion anti-chevauchement pour éliminer le bug de duplication d'Android Chrome
       recognition.onresult = (event: any) => {
-        let finalStr = '';
+        let mergedFinal = fullTranscriptRef.current;
         let currentInterim = '';
 
-        for (let i = 0; i < event.results.length; ++i) {
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
           const res = event.results[i];
-          const textPart = res[0]?.transcript || '';
+          const textPart = res[0]?.transcript?.trim() || '';
           if (res.isFinal) {
-            finalStr += (finalStr ? ' ' : '') + textPart.trim();
+            mergedFinal = mergeOverlappingTranscripts(mergedFinal, textPart);
           } else {
-            currentInterim += (currentInterim ? ' ' : '') + textPart.trim();
+            currentInterim = textPart;
           }
         }
 
-        fullTranscriptRef.current = finalStr;
-        setAccumulatedTranscript(finalStr);
+        fullTranscriptRef.current = mergedFinal;
+        setAccumulatedTranscript(mergedFinal);
         setLiveInterim(currentInterim);
       };
 

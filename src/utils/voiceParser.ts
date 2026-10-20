@@ -47,6 +47,29 @@ export const ROOMS_DEFINITIONS: Array<{ name: string; regex: RegExp }> = [
 ];
 
 /**
+ * Fusionne deux fragments vocaux successifs en évitant les répétitions
+ * causées par le chevauchement (overlap) de la Web Speech API sur Android Chrome.
+ */
+export function mergeOverlappingTranscripts(existing: string, incoming: string): string {
+  const ex = existing.trim();
+  const inc = incoming.trim();
+  if (!ex) return inc;
+  if (!inc) return ex;
+  if (ex.toLowerCase().includes(inc.toLowerCase())) return ex;
+  if (inc.toLowerCase().includes(ex.toLowerCase())) return inc;
+
+  const maxOverlap = Math.min(ex.length, inc.length);
+  for (let len = maxOverlap; len >= 3; len--) {
+    const suffix = ex.slice(-len).toLowerCase();
+    const prefix = inc.slice(0, len).toLowerCase();
+    if (suffix === prefix) {
+      return ex + inc.slice(len);
+    }
+  }
+  return ex + ' ' + inc;
+}
+
+/**
  * Nettoyage des bégaiements générés par la Web Speech API sur certains navigateurs mobiles (ex: Android Chrome)
  * qui répètent des groupes de mots en boucle.
  */
@@ -344,7 +367,17 @@ export function parseContinuousVoiceSpeech(
       } else if (currentRoom && item.category !== 'deplacement') {
         item.room = currentRoom;
       }
-      result.items.push(item);
+
+      // Dédoublonnage strict : évite d'ajouter plusieurs fois la même ligne (échos ou bégaiement audio)
+      const isDuplicate = result.items.some(
+        (existing) =>
+          existing.designation?.toLowerCase().trim() === item.designation?.toLowerCase().trim() &&
+          existing.room === item.room &&
+          existing.unitPriceHT === item.unitPriceHT
+      );
+      if (!isDuplicate) {
+        result.items.push(item);
+      }
     }
   }
 
