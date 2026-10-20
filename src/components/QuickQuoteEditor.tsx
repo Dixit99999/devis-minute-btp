@@ -302,8 +302,11 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
         console.warn("Erreur stop recognition:", e);
       }
 
-      // Concaténation de tout ce qui a été dit
-      const completeSpokenText = (fullTranscriptRef.current + ' ' + liveInterim).trim();
+      // Concaténation finale propre de tout ce qui a été dit (sans répétition)
+      let completeSpokenText = fullTranscriptRef.current.trim();
+      if (liveInterim && liveInterim.trim() && !completeSpokenText.endsWith(liveInterim.trim())) {
+        completeSpokenText = (completeSpokenText + ' ' + liveInterim.trim()).trim();
+      }
 
       if (!completeSpokenText) {
         setVoiceHint("ℹ️ Aucune parole n'a été détectée. Réessayez en parlant distinctement.");
@@ -312,7 +315,11 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
       }
 
       // Analyse globale multi-intentions (prestations, pièces, remises, acompte, client)
-      const dispatch = parseContinuousVoiceSpeech(completeSpokenText);
+      const dispatch = parseContinuousVoiceSpeech(
+        completeSpokenText,
+        artisan.defaultHourlyRate || 60,
+        artisan.defaultTravelFee ?? 50
+      );
 
       // 1. Ajout de toutes les lignes reconnues
       let nextItems = [...quote.items];
@@ -384,17 +391,23 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
         setIsRecording(true);
       };
 
+      // Reconstruction intégrale à chaque événement pour éviter les dédoublements sur Android Chrome
       recognition.onresult = (event: any) => {
+        let finalStr = '';
         let currentInterim = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          const trans = event.results[i][0]?.transcript || '';
-          if (event.results[i].isFinal) {
-            fullTranscriptRef.current += (fullTranscriptRef.current ? ' ' : '') + trans.trim();
-            setAccumulatedTranscript(fullTranscriptRef.current);
+
+        for (let i = 0; i < event.results.length; ++i) {
+          const res = event.results[i];
+          const textPart = res[0]?.transcript || '';
+          if (res.isFinal) {
+            finalStr += (finalStr ? ' ' : '') + textPart.trim();
           } else {
-            currentInterim += trans;
+            currentInterim += (currentInterim ? ' ' : '') + textPart.trim();
           }
         }
+
+        fullTranscriptRef.current = finalStr;
+        setAccumulatedTranscript(finalStr);
         setLiveInterim(currentInterim);
       };
 
@@ -808,12 +821,6 @@ export const QuickQuoteEditor: React.FC<QuickQuoteEditorProps> = ({
           )}
         </div>
       </div>
-
-      {/* Section Photos de Chantier */}
-      <PhotoUploadSection
-        photos={quote.photos || []}
-        onChange={(photos) => updateCalculation(quote.items, quote.depositPercent, quote.discountType, quote.discountValue, photos)}
-      />
 
       {/* Onglets Saisie / Catalogue rapide */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
