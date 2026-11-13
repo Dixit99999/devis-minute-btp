@@ -81,10 +81,10 @@ export const LegalModal: React.FC<LegalModalProps> = ({
         </div>
 
         {/* Corps Scrollable du Texte */}
-        <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar text-xs text-slate-300 space-y-5 leading-relaxed bg-slate-950/40">
+        <div className="p-5 sm:p-6 overflow-y-auto custom-scrollbar text-xs text-slate-300 space-y-5 leading-relaxed bg-slate-900">
           {activeTab === 'mentions' && (
             <div className="space-y-4">
-              <div className="bg-amber-500/10 border border-amber-500/20 p-3.5 rounded-2xl flex items-center gap-2.5 text-amber-300">
+              <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl flex items-center gap-2.5 text-amber-300 font-semibold">
                 <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
                 <span>Mentions obligatoires établies conformément à la loi n° 2004-575 du 21 juin 2004 (LCEN).</span>
               </div>
@@ -96,11 +96,11 @@ export const LegalModal: React.FC<LegalModalProps> = ({
                 <p>
                   L'application web et mobile <strong>Devis Minute BTP</strong> (accessible via <em>https://devis-minute-btp.vercel.app</em>) est éditée par :
                 </p>
-                <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-1 font-mono text-[11px]">
+                <div className="bg-slate-950/60 p-4 rounded-xl border border-slate-800 space-y-1 font-mono text-[11px]">
                   <p><strong className="text-slate-200">Éditeur :</strong> Devis Minute BTP</p>
                   <p><strong className="text-slate-200">Activité :</strong> Édition de logiciels applicatifs & solutions SaaS pour les professionnels du BTP (Code APE 6201Z / 5829C)</p>
                   <p><strong className="text-slate-200">Localisation :</strong> France (Rodez / Occitanie)</p>
-                  <p><strong className="text-slate-200">Contact Email :</strong> contact@devis-minute-btp.fr</p>
+                  <p><strong className="text-slate-200">Contact Email :</strong> <a href="mailto:contact@devis-minute-btp.fr" className="text-amber-400 font-bold underline">contact@devis-minute-btp.fr</a></p>
                   <p><strong className="text-slate-200">Directeur de la Publication :</strong> Responsable de la publication Devis Minute BTP</p>
                 </div>
               </section>
@@ -175,7 +175,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
               <section className="space-y-2">
                 <h4 className="text-sm font-black text-white">5. Exercice de vos Droits & CNIL</h4>
                 <p>
-                  Conformément aux articles 15 à 22 du RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation et de portabilité. Contact DPO : <strong className="text-amber-400">privacy@devis-minute-btp.fr</strong> (réponse sous 30 jours). Réclamation possible auprès de la CNIL (<em>www.cnil.fr</em>).
+                  Conformément aux articles 15 à 22 du RGPD, vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation et de portabilité. Contact DPO : <a href="mailto:privacy@devis-minute-btp.fr" className="text-amber-400 font-bold underline">privacy@devis-minute-btp.fr</a> (réponse sous 30 jours). Réclamation possible auprès de la CNIL (<em>www.cnil.fr</em>).
                 </p>
               </section>
             </div>
@@ -183,7 +183,7 @@ export const LegalModal: React.FC<LegalModalProps> = ({
 
           {activeTab === 'cgv' && (
             <div className="space-y-4">
-              <div className="bg-blue-500/10 border border-blue-500/20 p-3.5 rounded-2xl flex items-center gap-2.5 text-blue-300">
+              <div className="bg-blue-500/10 border border-blue-500/30 p-3.5 rounded-2xl flex items-center gap-2.5 text-blue-300 font-semibold">
                 <Lock className="w-4 h-4 text-blue-400 shrink-0" />
                 <span>Conditions Générales de Vente et d'Utilisation (CGV/CGU) — Version en vigueur au 1er novembre 2026.</span>
               </div>

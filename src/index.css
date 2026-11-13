@@ -52,7 +52,9 @@
 /* Modales en mode clair : overlay doux et velouté (fini le noir opaque agressif) */
 .theme-light .bg-slate-950\/90,
 .theme-light .bg-slate-950\/80,
-.theme-light .bg-slate-900\/80 {
+.theme-light .bg-slate-900\/80,
+.theme-light .bg-black\/70,
+.theme-light .bg-black\/80 {
   background-color: rgba(15, 23, 42, 0.45) !important;
   backdrop-filter: blur(8px) !important;
 }
@@ -68,8 +70,10 @@
   button.bg-rose-500 *,
   button.bg-sky-600 *,
   button.bg-sky-500 *,
+  button.bg-blue-600 *,
   button.bg-slate-900 *,
   button.bg-slate-950 *,
+  button.from-blue-600 *,
   .badge-primary *,
   .fixed.bottom-4.right-4 *
 ).text-white {
@@ -78,19 +82,81 @@
 
 .theme-light *:not(button *).text-slate-100,
 .theme-light *:not(button *).text-slate-200 {
-  color: #1e293b !important;
+  color: #0f172a !important;
 }
 
 .theme-light *:not(button *).text-slate-300 {
-  color: #334155 !important;
+  color: #1e293b !important;
 }
 
 .theme-light *:not(button *).text-slate-400 {
-  color: #475569 !important;
+  color: #334155 !important;
 }
 
 .theme-light *:not(button *).text-slate-500 {
-  color: #64748b !important;
+  color: #475569 !important;
+}
+
+/* Forçage haute lisibilité des couleurs pastel (Ambre, Émeraude, Bleu, Rose) sur fond clair */
+.theme-light *:not(button):not(button *).text-amber-200,
+.theme-light *:not(button):not(button *).text-amber-300,
+.theme-light *:not(button):not(button *).text-amber-400 {
+  color: #b45309 !important; /* Amber-700 très lisible sur blanc */
+}
+
+.theme-light button:not(.bg-amber-500):not(.bg-slate-900) .text-amber-400,
+.theme-light button.border-amber-400.text-amber-400 {
+  color: #b45309 !important;
+  border-color: #d97706 !important;
+}
+
+.theme-light *:not(button):not(button *).text-emerald-300,
+.theme-light *:not(button):not(button *).text-emerald-400 {
+  color: #047857 !important; /* Emerald-700 très lisible sur blanc */
+}
+
+.theme-light *:not(button):not(button *).text-blue-300,
+.theme-light *:not(button):not(button *).text-blue-400,
+.theme-light *:not(button):not(button *).text-sky-300,
+.theme-light *:not(button):not(button *).text-sky-400 {
+  color: #0369a1 !important; /* Sky/Blue-700 très lisible sur blanc */
+}
+
+.theme-light *:not(button):not(button *).text-indigo-300,
+.theme-light *:not(button):not(button *).text-indigo-400,
+.theme-light *:not(button):not(button *).text-purple-400 {
+  color: #4338ca !important; /* Indigo-700 */
+}
+
+.theme-light *:not(button):not(button *).text-rose-300,
+.theme-light *:not(button):not(button *).text-rose-400 {
+  color: #be123c !important; /* Rose-700 */
+}
+
+/* Bandeaux d'information colorés en mode clair */
+.theme-light .bg-amber-500\/10,
+.theme-light .bg-amber-500\/15,
+.theme-light .bg-amber-500\/20 {
+  background-color: #fffbeb !important;
+  border-color: #fcd34d !important;
+  color: #92400e !important;
+}
+
+.theme-light .bg-emerald-500\/10,
+.theme-light .bg-emerald-500\/20,
+.theme-light .bg-emerald-950\/40 {
+  background-color: #ecfdf5 !important;
+  border-color: #6ee7b7 !important;
+  color: #065f46 !important;
+}
+
+.theme-light .bg-blue-500\/10,
+.theme-light .bg-blue-500\/20,
+.theme-light .bg-sky-500\/10,
+.theme-light .bg-sky-500\/20 {
+  background-color: #eff6ff !important;
+  border-color: #93c5fd !important;
+  color: #1e40af !important;
 }
 
 /* Cartes et conteneurs sombres adaptés au mode clair */
@@ -100,19 +166,34 @@
   border-color: #e2e8f0 !important;
 }
 
+.theme-light .bg-slate-900\/40,
 .theme-light .bg-slate-900\/50,
 .theme-light .bg-slate-900\/60,
 .theme-light .bg-slate-900\/70,
 .theme-light .bg-slate-900\/80,
 .theme-light .bg-slate-900\/90,
 .theme-light .bg-slate-900\/95,
+.theme-light .bg-slate-950\/30,
+.theme-light .bg-slate-950\/40,
 .theme-light .bg-slate-950\/50,
 .theme-light .bg-slate-950\/60,
 .theme-light .bg-slate-950\/70,
+.theme-light .bg-slate-950\/80,
+.theme-light .bg-slate-800\/40,
+.theme-light .bg-slate-800\/50,
+.theme-light .bg-slate-800\/60,
 .theme-light .bg-slate-800\/80,
-.theme-light .bg-slate-800\/90 {
+.theme-light .bg-slate-800\/90,
+.theme-light .bg-slate-850 {
   background-color: #f8fafc !important;
-  border-color: #e2e8f0 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Dégradés sombres des modales (ex: Export Comptable & Pennylane) adaptés au mode clair */
+.theme-light .from-blue-900\/60,
+.theme-light .from-emerald-950\/50 {
+  background-image: none !important;
+  background-color: #f8fafc !important;
 }
 
 .theme-light .bg-slate-800 {
