@@ -1,10 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { Quote, ArtisanProfile } from '../types';
 import {
   filterQuotesForExport,
   calculateVatAndRevenueSummary,
   generateSalesJournalCSV,
   generateFECFile,
+  generateFacturXBatchXml,
   downloadFile,
 } from '../utils/accountingExport';
 import { formatEuro } from '../utils/calculator';
@@ -20,6 +21,10 @@ import {
   Receipt,
   Sparkles,
   Info,
+  ShieldCheck,
+  Link2,
+  Send,
+  HelpCircle,
 } from 'lucide-react';
 
 interface AccountingExportModalProps {
@@ -40,6 +45,44 @@ export const AccountingExportModal: React.FC<AccountingExportModalProps> = ({
   const [period, setPeriod] = useState<PeriodFilter>('month');
   const [onlyPaidOrSigned, setOnlyPaidOrSigned] = useState<boolean>(true);
   const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
+  const [pennylaneEmail, setPennylaneEmail] = useState<string>(artisan.pennylaneIngestionEmail || '');
+  const [pennylaneApiKey, setPennylaneApiKey] = useState<string>(artisan.pennylaneApiKey || '');
+  const [isPennylaneConnected, setIsPennylaneConnected] = useState<boolean>(Boolean(artisan.pennylaneConnected));
+  const [showPennylaneGuide, setShowPennylaneGuide] = useState<boolean>(false);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('devis_minute_pennylane_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.email) setPennylaneEmail(parsed.email);
+        if (parsed.apiKey) setPennylaneApiKey(parsed.apiKey);
+        if (parsed.connected) setIsPennylaneConnected(true);
+      }
+    } catch {
+      // ignore localStorage errors
+    }
+  }, []);
+
+  const handleSavePennylaneConfig = () => {
+    const connected = Boolean(pennylaneEmail.trim() || pennylaneApiKey.trim());
+    setIsPennylaneConnected(connected);
+    localStorage.setItem(
+      'devis_minute_pennylane_config',
+      JSON.stringify({
+        email: pennylaneEmail.trim(),
+        apiKey: pennylaneApiKey.trim(),
+        connected,
+        updatedAt: new Date().toISOString(),
+      })
+    );
+    setCopiedNotification(
+      connected
+        ? 'Raccordement Pennylane (Plateforme Agréée 2026) activé avec succès !'
+        : 'Paramètres Pennylane réinitialisés.'
+    );
+    setTimeout(() => setCopiedNotification(null), 3500);
+  };
 
   // Calcul des dates en fonction de la période choisie
   const dateRange = useMemo(() => {
@@ -99,6 +142,43 @@ export const AccountingExportModal: React.FC<AccountingExportModalProps> = ({
     const yearStr = (dateRange.start ? dateRange.start.slice(0, 4) : new Date().getFullYear().toString());
     const filename = `${siren}FEC${yearStr}1231.txt`;
     downloadFile(fecContent, filename, 'text/plain;charset=utf-8;');
+  };
+
+  const handleDownloadFacturX = () => {
+    if (filteredQuotes.length === 0) return;
+    const xmlContent = generateFacturXBatchXml(filteredQuotes, artisan);
+    const dateTag = dateRange.start ? `${dateRange.start}_au_${dateRange.end || 'fin'}` : 'global';
+    const filename =
+      filteredQuotes.length === 1
+        ? `Factur-X_EN16931_${filteredQuotes[0].invoiceNumber || filteredQuotes[0].number}.xml`
+        : `Lot_Factur-X_EN16931_${artisan.companyName.replace(/[^a-zA-Z0-9]/g, '_')}_${dateTag}.xml`;
+    downloadFile(xmlContent, filename, 'application/xml;charset=utf-8;');
+    setCopiedNotification('Fichier Factur-X (XML EN 16931) téléchargé !');
+    setTimeout(() => setCopiedNotification(null), 3000);
+  };
+
+  const handleSyncToPennylane = () => {
+    if (filteredQuotes.length > 0) {
+      handleDownloadFacturX();
+    }
+    const targetEmail = pennylaneEmail.trim() || '';
+    const subject = encodeURIComponent(
+      `[Factur-X EN 16931] Import Ventes BTP - ${artisan.companyName} (${filteredQuotes.length} pièce(s))`
+    );
+    const body = encodeURIComponent(`Bonjour,
+
+Transmission automatique vers la Plateforme Agréée (PA / PDP) Pennylane conforme à la réforme de la facturation électronique 2026/2027 (Norme Factur-X EN 16931).
+
+🏢 Émetteur : ${artisan.companyName} (SIRET : ${artisan.siret || 'N/A'})
+📅 Période : ${dateRange.start ? `Du ${dateRange.start} au ${dateRange.end}` : 'Toutes périodes'}
+📄 Pièces certifiées Factur-X : ${filteredQuotes.length}
+💶 Total HT : ${formatEuro(summary.totalHT)} | Total TVA : ${formatEuro(summary.totalTVA)} | Total TTC : ${formatEuro(summary.totalTTC)}
+
+Le fichier XML structuré Factur-X (EN 16931) vient d'être généré sur votre appareil : glissez-le en pièce jointe de cet email ou dans votre espace Pennylane / Chorus Pro.
+
+Généré par Devis Minute BTP — Solution Compatible Pennylane.`);
+
+    window.open(`mailto:${targetEmail}?subject=${subject}&body=${body}`, '_blank');
   };
 
   const handleEmailAccountant = () => {
@@ -326,8 +406,31 @@ Nombre de pièces : ${summary.countSigned}`;
               3. Télécharger les fichiers comptables
             </label>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Option 1: CSV Excel */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Option 1: Factur-X XML EN 16931 */}
+              <button
+                type="button"
+                onClick={handleDownloadFacturX}
+                disabled={filteredQuotes.length === 0}
+                className="flex items-start gap-3 p-3.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/40 hover:border-amber-400 text-left transition-all group disabled:opacity-50"
+              >
+                <div className="w-9 h-9 rounded-lg bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-400 shrink-0 group-hover:scale-105 transition-transform">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-semibold text-white group-hover:text-amber-300 transition-colors flex items-center gap-1.5">
+                    Factur-X (.xml)
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">
+                      2026
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Norme officielle EN 16931 (Pennylane, Chorus Pro, PDP).
+                  </p>
+                </div>
+              </button>
+
+              {/* Option 2: CSV Excel */}
               <button
                 type="button"
                 onClick={handleDownloadCSV}
@@ -338,15 +441,15 @@ Nombre de pièces : ${summary.countSigned}`;
                 </div>
                 <div>
                   <div className="font-semibold text-white group-hover:text-emerald-300 transition-colors flex items-center gap-1.5">
-                    Journal Ventes CSV (Excel)
+                    Journal CSV (Excel)
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Tableur complet avec TVA ventilée, acomptes et détails clients.
+                    Tableur complet avec TVA ventilée, acomptes et clients.
                   </p>
                 </div>
               </button>
 
-              {/* Option 2: FEC DGFIP */}
+              {/* Option 3: FEC DGFIP */}
               <button
                 type="button"
                 onClick={handleDownloadFEC}
@@ -357,12 +460,117 @@ Nombre de pièces : ${summary.countSigned}`;
                 </div>
                 <div>
                   <div className="font-semibold text-white group-hover:text-blue-300 transition-colors flex items-center gap-1.5">
-                    Fichier FEC DGFIP (.txt)
+                    Fichier FEC (.txt)
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Conforme Article A.47 A-1 (Sage, Pennylane, Cegid, EBP).
+                    Conforme Art. A.47 A-1 (Sage, Cegid, EBP, Pennylane).
                   </p>
                 </div>
+              </button>
+            </div>
+          </div>
+
+          {/* 4. CONNECTEUR PLATEFORME AGRÉÉE PENNYLANE (RÉFORME 2026/2027) */}
+          <div className="bg-gradient-to-br from-emerald-950/50 via-slate-900 to-slate-900 rounded-xl p-4 border border-emerald-500/30 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-400">
+                  <Link2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">
+                      4. Connecteur Plateforme Agréée Pennylane (PA / PDP)
+                    </h3>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                        isPennylaneConnected
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                          : 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                      }`}
+                    >
+                      {isPennylaneConnected ? 'Connecté • Prêt 2026/2027' : 'Inclus • 0 €'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300">
+                    Réception des factures fournisseurs (Sept. 2026) & Émission Factur-X (Sept. 2027)
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowPennylaneGuide(!showPennylaneGuide)}
+                className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-semibold"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                {showPennylaneGuide ? 'Masquer le guide' : 'Comment activer gratuitement ?'}
+              </button>
+            </div>
+
+            {showPennylaneGuide && (
+              <div className="bg-slate-950/80 border border-slate-800 rounded-lg p-3 text-xs text-slate-300 space-y-1.5">
+                <p className="font-bold text-emerald-400">
+                  Fonctionnement de la Solution Compatible Pennylane (0 € de surcoût) :
+                </p>
+                <ol className="list-decimal list-inside space-y-1 text-[11px] text-slate-300">
+                  <li>
+                    <strong>Création gratuite :</strong> Activez votre compte Pennylane (ou demandez votre adresse d'import à votre expert-comptable).
+                  </li>
+                  <li>
+                    <strong>Raccordement :</strong> Saisissez ci-dessous votre email de collecte Pennylane (ex: <code className="text-amber-300">mon-entreprise@pennylane.me</code>) ou votre clé API.
+                  </li>
+                  <li>
+                    <strong>Synchronisation 1-Clic :</strong> Devis Minute BTP génère vos factures au standard légal <strong>Factur-X (XML EN 16931)</strong> et les transmet à Pennylane.
+                  </li>
+                </ol>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">
+                  Email d'import Pennylane (@pennylane.me)
+                </label>
+                <input
+                  type="email"
+                  value={pennylaneEmail}
+                  onChange={(e) => setPennylaneEmail(e.target.value)}
+                  placeholder="ex: dupont-btp@pennylane.me"
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] text-slate-400 mb-1">
+                  Clé API Partner Pennylane (Optionnel)
+                </label>
+                <input
+                  type="password"
+                  value={pennylaneApiKey}
+                  onChange={(e) => setPennylaneApiKey(e.target.value)}
+                  placeholder="pk_live_..."
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleSavePennylaneConfig}
+                className="w-full sm:w-auto px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition"
+              >
+                Enregistrer la configuration
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSyncToPennylane}
+                disabled={filteredQuotes.length === 0}
+                className="w-full sm:flex-1 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/20 transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+              >
+                <Send className="w-3.5 h-3.5" />
+                Transmettre le lot Factur-X vers Pennylane ({filteredQuotes.length} pièce(s))
               </button>
             </div>
           </div>

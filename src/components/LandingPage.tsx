@@ -95,6 +95,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartFreeTrial, onOp
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Fonctionne 100% hors-ligne
           </span>
+          <span className="flex items-center gap-1.5 text-amber-300 font-semibold">
+            <ShieldCheck className="w-4 h-4 text-amber-400" /> Prêt Factur-X 2026/2027 & Compatible Pennylane
+          </span>
         </div>
       </section>
 
@@ -439,6 +442,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartFreeTrial, onOp
           <li className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
             <span>Mode Chantier Hors-ligne permanent</span>
+          </li>
+          <li className="flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-amber-400 shrink-0" />
+            <span className="font-semibold text-amber-200">
+              Export Factur-X (EN 16931), FEC & Compatible Pennylane 2026 inclus
+            </span>
           </li>
         </ul>
 

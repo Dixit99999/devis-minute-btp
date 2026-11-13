@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import type { Quote, ArtisanProfile } from '../types';
 import { formatEuro, groupItemsByRoom } from '../utils/calculator';
+import { generateFacturXXml, downloadFile } from '../utils/accountingExport';
 import {
   X,
   Download,
@@ -9,6 +10,7 @@ import {
   CheckCircle2,
   Shield,
   FileText,
+  FileCode,
   CreditCard,
   User,
   MapPin,
@@ -101,6 +103,16 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handleDownloadFacturXXml = () => {
+    const xml = generateFacturXXml(quote, artisan);
+    const docNum = quote.creditNoteNumber || quote.invoiceNumber || quote.number;
+    downloadFile(
+      xml,
+      `Factur-X_EN16931_${docNum}_${(quote.client.name || 'Client').replace(/\s+/g, '_')}.xml`,
+      'application/xml;charset=utf-8;'
+    );
   };
 
   const handleShareWhatsApp = () => {
@@ -214,6 +226,15 @@ export const QuotePDFModal: React.FC<QuotePDFModalProps> = ({
             >
               <Download className="w-3.5 h-3.5" />
               {isGenerating ? 'Export...' : 'PDF'}
+            </button>
+
+            <button
+              onClick={handleDownloadFacturXXml}
+              title="Télécharger le fichier XML Factur-X (Norme EN 16931 - Compatible Pennylane & Réforme 2026/2027)"
+              className="py-2 px-3 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition"
+            >
+              <FileCode className="w-3.5 h-3.5 text-amber-400" />
+              Factur-X (.xml)
             </button>
           </div>
         </div>

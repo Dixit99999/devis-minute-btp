@@ -63,6 +63,10 @@ export interface ArtisanProfile {
   webhookUrl?: string;
   sendSmsOnSign?: boolean;
   sendEmailOnSign?: boolean;
+  // Connecteur Plateforme Agréée (PA) Pennylane & Factur-X 2026/2027
+  pennylaneIngestionEmail?: string;
+  pennylaneApiKey?: string;
+  pennylaneConnected?: boolean;
 }
 
 export type QuoteStatus = 'brouillon' | 'envoye' | 'signe' | 'acompte_paye' | 'facture_acompte' | 'facture_solde' | 'avoir_emis';

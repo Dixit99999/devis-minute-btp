@@ -355,6 +355,227 @@ export function generateFECFile(quotes: Quote[], _artisan: ArtisanProfile): stri
 }
 
 /**
+ * Échappe les caractères spéciaux pour un document XML valide
+ */
+function escapeXml(unsafe: string | undefined | null): string {
+  if (!unsafe) return '';
+  return String(unsafe)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+/**
+ * Convertit l'unité BTP en code UN/ECE Rec 20 normalisé EN 16931
+ */
+function mapUnitToUnEce(unit: string): string {
+  switch (unit) {
+    case 'h':
+      return 'HUR'; // Heure
+    case 'j':
+      return 'DAY'; // Jour
+    case 'm²':
+      return 'MTK'; // Mètre carré
+    case 'ml':
+      return 'MTR'; // Mètre linéaire
+    case 'u':
+    case 'forfait':
+    default:
+      return 'C62'; // Unité / Forfait
+  }
+}
+
+/**
+ * Génère le fichier XML Factur-X 1.0.07 (Profil EN 16931 / UN/CEFACT CrossIndustryInvoice D16B)
+ * Compatible Plateformes Agréées (PA / PDP) : Pennylane, Chorus Pro, Sage, Cegid, Tiime (Réforme 2026/2027)
+ */
+export function generateFacturXXml(quote: Quote, artisan: ArtisanProfile): string {
+  const isCreditNote = quote.docType === 'avoir';
+  const isDepositInvoice = quote.docType === 'facture_acompte';
+  const isFinalInvoice = quote.docType === 'facture_solde';
+
+  // TypeCode UNTDID 1001 : 380 = Facture commerciale, 386 = Facture d'acompte, 381 = Avoir, 325 = Devis/Proforma
+  const typeCode = isCreditNote ? '381' : isDepositInvoice ? '386' : isFinalInvoice ? '380' : '380';
+  const docNumber = isCreditNote
+    ? (quote.creditNoteNumber || quote.number)
+    : (quote.invoiceNumber || quote.number);
+
+  const rawDate = (quote.signedAt || quote.createdAt || new Date().toISOString()).split('T')[0];
+  const issueDate102 = rawDate.replace(/-/g, '').slice(0, 8);
+  const siren = (artisan.siret || '00000000000000').replace(/\s/g, '').slice(0, 9);
+  const siret = (artisan.siret || '00000000000000').replace(/\s/g, '');
+  const tvaIntra = (artisan.tvaIntra || `FR00${siren}`).replace(/\s/g, '');
+
+  // Lignes du document (IncludedSupplyChainTradeLineItem)
+  const lineItemsXml = (quote.items || [])
+    .map((item, idx) => {
+      const lineTotalHT = ((item.quantity || 0) * (item.unitPriceHT || 0)).toFixed(2);
+      const unitCode = mapUnitToUnEce(item.unit);
+      const vatCatCode = item.vatRate === 0 ? 'Z' : 'S';
+
+      return `    <ram:IncludedSupplyChainTradeLineItem>
+      <ram:AssociatedDocumentLineDocument>
+        <ram:LineID>${idx + 1}</ram:LineID>
+      </ram:AssociatedDocumentLineDocument>
+      <ram:SpecifiedTradeProduct>
+        <ram:Name>${escapeXml(item.designation)}</ram:Name>
+      </ram:SpecifiedTradeProduct>
+      <ram:SpecifiedLineTradeAgreement>
+        <ram:NetPriceProductTradePrice>
+          <ram:ChargeAmount>${(item.unitPriceHT || 0).toFixed(2)}</ram:ChargeAmount>
+        </ram:NetPriceProductTradePrice>
+      </ram:SpecifiedLineTradeAgreement>
+      <ram:SpecifiedLineTradeDelivery>
+        <ram:BilledQuantity unitCode="${unitCode}">${(item.quantity || 1).toFixed(2)}</ram:BilledQuantity>
+      </ram:SpecifiedLineTradeDelivery>
+      <ram:SpecifiedLineTradeSettlement>
+        <ram:ApplicableTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>${vatCatCode}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${Number(item.vatRate).toFixed(2)}</ram:RateApplicablePercent>
+        </ram:ApplicableTradeTax>
+        <ram:SpecifiedTradeSettlementLineMonetarySummation>
+          <ram:LineTotalAmount>${lineTotalHT}</ram:LineTotalAmount>
+        </ram:SpecifiedTradeSettlementLineMonetarySummation>
+      </ram:SpecifiedLineTradeSettlement>
+    </ram:IncludedSupplyChainTradeLineItem>`;
+    })
+    .join('\n');
+
+  // Ventilation TVA (ApplicableTradeTax)
+  const vatEntries = Object.entries(quote.vatBreakdown || {}).filter(
+    ([, vals]) => vals && vals.baseHT > 0
+  );
+
+  const tradeTaxesXml =
+    vatEntries.length > 0
+      ? vatEntries
+          .map(([rate, vals]) => {
+            const numRate = Number(rate);
+            const catCode = numRate === 0 ? 'Z' : 'S';
+            return `      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>${(vals?.vatAmount || 0).toFixed(2)}</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        <ram:BasisAmount>${(vals?.baseHT || 0).toFixed(2)}</ram:BasisAmount>
+        <ram:CategoryCode>${catCode}</ram:CategoryCode>
+        <ram:RateApplicablePercent>${numRate.toFixed(2)}</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>`;
+          })
+          .join('\n')
+      : `      <ram:ApplicableTradeTax>
+        <ram:CalculatedAmount>${(quote.totalTVA || 0).toFixed(2)}</ram:CalculatedAmount>
+        <ram:TypeCode>VAT</ram:TypeCode>
+        <ram:BasisAmount>${(quote.totalHT || 0).toFixed(2)}</ram:BasisAmount>
+        <ram:CategoryCode>S</ram:CategoryCode>
+        <ram:RateApplicablePercent>20.00</ram:RateApplicablePercent>
+      </ram:ApplicableTradeTax>`;
+
+  const prepaidAmount =
+    isFinalInvoice && (quote.depositAmountTTC || 0) > 0 ? quote.depositAmountTTC : 0;
+  const duePayableAmount = Math.max(0, (quote.totalTTC || 0) - prepaidAmount);
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rsm:CrossIndustryInvoice xmlns:rsm="urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100"
+  xmlns:qdt="urn:un:unece:uncefact:data:standard:QualifiedDataType:100"
+  xmlns:ram="urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100"
+  xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  xmlns:udt="urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100">
+  <rsm:ExchangedDocumentContext>
+    <ram:GuidelineSpecifiedDocumentContextParameter>
+      <ram:ID>urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:en16931</ram:ID>
+    </ram:GuidelineSpecifiedDocumentContextParameter>
+  </rsm:ExchangedDocumentContext>
+  <rsm:ExchangedDocument>
+    <ram:ID>${escapeXml(docNumber)}</ram:ID>
+    <ram:TypeCode>${typeCode}</ram:TypeCode>
+    <ram:IssueDateTime>
+      <udt:DateTimeString format="102">${issueDate102}</udt:DateTimeString>
+    </ram:IssueDateTime>
+    <ram:IncludedNote>
+      <ram:Content>Document généré par Devis Minute BTP — Norme Factur-X EN 16931 (Compatible Plateforme Agréée Pennylane). Assurance Décennale : ${escapeXml(artisan.decennaleCompany)} Police n° ${escapeXml(artisan.decennalePoliceNumber)}.</ram:Content>
+    </ram:IncludedNote>
+  </rsm:ExchangedDocument>
+  <rsm:SupplyChainTradeTransaction>
+${lineItemsXml}
+    <ram:ApplicableHeaderTradeAgreement>
+      <ram:SellerTradeParty>
+        <ram:Name>${escapeXml(artisan.companyName)}</ram:Name>
+        <ram:SpecifiedLegalOrganization>
+          <ram:ID schemeID="0002">${escapeXml(siret)}</ram:ID>
+        </ram:SpecifiedLegalOrganization>
+        <ram:PostalTradeAddress>
+          <ram:PostcodeCode>${escapeXml(artisan.postalCode)}</ram:PostcodeCode>
+          <ram:LineOne>${escapeXml(artisan.address)}</ram:LineOne>
+          <ram:CityName>${escapeXml(artisan.city)}</ram:CityName>
+          <ram:CountryID>FR</ram:CountryID>
+        </ram:PostalTradeAddress>
+        <ram:SpecifiedTaxRegistration>
+          <ram:ID schemeID="VA">${escapeXml(tvaIntra)}</ram:ID>
+        </ram:SpecifiedTaxRegistration>
+      </ram:SellerTradeParty>
+      <ram:BuyerTradeParty>
+        <ram:Name>${escapeXml(quote.client?.name || 'Client')}</ram:Name>
+        <ram:PostalTradeAddress>
+          <ram:PostcodeCode>${escapeXml(quote.client?.postalCode || '')}</ram:PostcodeCode>
+          <ram:LineOne>${escapeXml(quote.client?.address || '')}</ram:LineOne>
+          <ram:CityName>${escapeXml(quote.client?.city || '')}</ram:CityName>
+          <ram:CountryID>FR</ram:CountryID>
+        </ram:PostalTradeAddress>
+      </ram:BuyerTradeParty>
+    </ram:ApplicableHeaderTradeAgreement>
+    <ram:ApplicableHeaderTradeDelivery>
+      <ram:ActualDeliverySupplyChainEvent>
+        <ram:OccurrenceDateTime>
+          <udt:DateTimeString format="102">${issueDate102}</udt:DateTimeString>
+        </ram:OccurrenceDateTime>
+      </ram:ActualDeliverySupplyChainEvent>
+    </ram:ApplicableHeaderTradeDelivery>
+    <ram:ApplicableHeaderTradeSettlement>
+      <ram:InvoiceCurrencyCode>EUR</ram:InvoiceCurrencyCode>
+      <ram:SpecifiedTradeSettlementPaymentMeans>
+        <ram:TypeCode>30</ram:TypeCode>
+        <ram:PayeePartyCreditorFinancialAccount>
+          <ram:IBANID>${escapeXml((artisan.ribIban || '').replace(/\s/g, ''))}</ram:IBANID>
+        </ram:PayeePartyCreditorFinancialAccount>
+      </ram:SpecifiedTradeSettlementPaymentMeans>
+${tradeTaxesXml}
+      <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+        <ram:LineTotalAmount>${(quote.totalBrutHT || quote.totalHT || 0).toFixed(2)}</ram:LineTotalAmount>
+        <ram:AllowanceTotalAmount>${(quote.discountAmountHT || 0).toFixed(2)}</ram:AllowanceTotalAmount>
+        <ram:TaxBasisTotalAmount>${(quote.totalHT || 0).toFixed(2)}</ram:TaxBasisTotalAmount>
+        <ram:TaxTotalAmount currencyID="EUR">${(quote.totalTVA || 0).toFixed(2)}</ram:TaxTotalAmount>
+        <ram:GrandTotalAmount>${(quote.totalTTC || 0).toFixed(2)}</ram:GrandTotalAmount>
+        <ram:TotalPrepaidAmount>${prepaidAmount.toFixed(2)}</ram:TotalPrepaidAmount>
+        <ram:DuePayableAmount>${duePayableAmount.toFixed(2)}</ram:DuePayableAmount>
+      </ram:SpecifiedTradeSettlementHeaderMonetarySummation>
+    </ram:ApplicableHeaderTradeSettlement>
+  </rsm:SupplyChainTradeTransaction>
+</rsm:CrossIndustryInvoice>`;
+}
+
+/**
+ * Génère un lot XML Factur-X (Batch EN 16931) pour l'ensemble des pièces de la période sélectionnée
+ */
+export function generateFacturXBatchXml(quotes: Quote[], artisan: ArtisanProfile): string {
+  if (quotes.length === 1) {
+    return generateFacturXXml(quotes[0], artisan);
+  }
+  const items = quotes
+    .map((q) => {
+      const xml = generateFacturXXml(q, artisan).replace(
+        '<?xml version="1.0" encoding="UTF-8"?>\n',
+        ''
+      );
+      return `  <!-- Pièce : ${escapeXml(q.invoiceNumber || q.creditNoteNumber || q.number)} (${escapeXml(q.client?.name)}) -->\n${xml}`;
+    })
+    .join('\n\n');
+
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<FacturXBatch xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" profile="urn:cen.eu:en16931:2017#compliant#urn:factur-x.eu:1p0:en16931" count="${quotes.length}">\n${items}\n</FacturXBatch>`;
+}
+
+/**
  * Télécharge un fichier dans le navigateur client
  */
 export function downloadFile(content: string, filename: string, mimeType: string) {
